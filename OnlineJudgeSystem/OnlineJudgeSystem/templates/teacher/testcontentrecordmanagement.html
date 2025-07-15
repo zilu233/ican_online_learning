@@ -1,0 +1,281 @@
+﻿{% extends "layout.html" %}
+
+{% block content %}
+
+
+
+
+
+<script src="../static/content/bootstrap-datetimepicker/jquery-3.4.1.min.js"></script>
+<link href="../static/content/bootstrap-datetimepicker/bootstrap-datetimepicker.min.css" rel="stylesheet" />
+<script src="../static/content/bootstrap-datetimepicker/bootstrap-datetimepicker.min.js"></script>
+<script src="../static/scripts/bootstrap.min.js"></script>
+
+
+
+<div style="margin-top:150px">
+
+</div>
+
+
+<div class="container">
+    <h2>做题管理列表</h2>
+    <div class="row-fluid">
+        <!-- block -->
+        <div class="block">
+            <div class="navbar navbar-inner block-header">
+                <div class="muted pull-left">做题管理列表</div>
+            </div>
+            <div class="block-content collapse in">
+                <div class="span12">
+
+                    <div id="example_wrapper" class="dataTables_wrapper form-inline" role="grid">
+                        <div class="row">
+                            <div class="span12">
+                                <div style="margin-left:20px" class="dataTables_filter">
+                                    <form action="/testcontentrecordmanagementseacher" method="post">
+                                        <div id="datetimepicker" style="width:300px;height:auto;float:left;display:inline">
+                                            做题开始时间
+                                            <input readonly name="startTime" value="" id="dateInput" data-format="MM/dd/yyyy HH:mm:ss PP" class="form-control" type="text" />
+                                            <span class="add-on">
+                                                <button id="btnShowDate" style="display:none;" data-time-icon="icon-time" data-date-icon="icon-calendar">选择时间</button>
+                                            </span>
+                                        </div>
+
+                                        <div id="datetimepicker1" style="width:300px;height:auto;float:left;display:inline">
+                                            做题结束时间
+                                            <input readonly name="endTime" value="" id="dateInput1" data-format="MM/dd/yyyy HH:mm:ss PP" class="form-control" type="text" />
+                                            <span class="add-on">
+                                                <button id="btnShowDate1" style="display:none;" data-time-icon="icon-time" data-date-icon="icon-calendar">选择时间</button>
+                                            </span>
+                                        </div>
+                                        <button id="seacher" class="col-4">查找</button>
+                                    </form>
+                                </div>
+
+                            </div>
+                        </div>
+
+
+                        <table cellpadding="0" cellspacing="0" border="0" class="table table-striped table-bordered dataTable" id="example" aria-describedby="example_info">
+                            <thead>
+                                <tr role="row">
+                                    <th class="sorting_asc" role="columnheader" tabindex="0" aria-controls="example" rowspan="1" colspan="1" aria-sort="ascending" aria-label="Rendering engine: activate to sort column descending" style="width: 146px;">编号</th>
+                                    <th class="sorting" role="columnheader" tabindex="0" aria-controls="example" rowspan="1" colspan="1" aria-label="Browser: activate to sort column ascending" style="width: 215px;">用户名称</th>
+                                    <th class="sorting" role="columnheader" tabindex="0" aria-controls="example" rowspan="1" colspan="1" aria-label="Engine version: activate to sort column ascending" style="width: 215px;">用户姓名</th>
+                                    <th class="sorting" role="columnheader" tabindex="0" aria-controls="example" rowspan="1" colspan="1" aria-label="CSS grade: activate to sort column ascending" style="width: 215px;">手机号码</th>
+                                    <th class="sorting" role="columnheader" tabindex="0" aria-controls="example" rowspan="1" colspan="1" aria-label="CSS grade: activate to sort column ascending" style="width: 300px;">家庭住址</th>
+                                    <th class="sorting" role="columnheader" tabindex="0" aria-controls="example" rowspan="1" colspan="1" aria-label="CSS grade: activate to sort column ascending" style="width: 89px;">测试结果</th>
+                                    <th class="sorting" role="columnheader" tabindex="0" aria-controls="example" rowspan="1" colspan="1" aria-label="CSS grade: activate to sort column ascending" style="width: 200px;">做题时间</th>
+                                    <th class="sorting" role="columnheader" tabindex="0" aria-controls="example" rowspan="1" colspan="1" aria-label="CSS grade: activate to sort column ascending" style="width: 89px;">总答题分</th>
+                                    <th class="sorting" role="columnheader" tabindex="0" aria-controls="example" rowspan="1" colspan="1" aria-label="CSS grade: activate to sort column ascending" style="width: 89px;">操作</th>
+                                </tr>
+                            </thead>
+
+                            <tbody role="alert" aria-live="polite" aria-relevant="all">
+                                {% for item in datas %}
+                                {% for item1 in item.StudentsTestRecord %}
+                                <tr class="gradeA odd">
+                                    <td class="sorting_1">{{item1.Id}}</td>
+                                    <td class=" ">{{item.UserName}}</td>
+                                    <td class="center ">{{item.Name}}</td>
+                                    <td class="center ">{{item.Phone}}</td>
+                                    <td class="center ">{{item.Address}}</td>
+                                    <td class="center ">
+                                        <a class="btn btn-primary" href="javascript:void(0);" onclick="showInformation({{item1.Id}})">查&nbsp;看</a>
+                                    </td>
+                                    <td class="center ">{{item1.RocordTime}}</td>
+                                    <td class="center ">{{item1.Sum_Grade}}</td>
+                                    <td class="center ">
+                                        <a class="btn btn-danger" href="/testcontentrecordmanagementdelete?id={{item1.Id}}">删除</a>
+                                    </td>
+                                </tr>
+
+                                {% endfor %}
+                                {% endfor %}
+
+
+
+                            </tbody>
+                        </table>
+
+
+                        {% if seacher != "123" %}
+                        <div class="row">
+                            <div class="span6">
+                                <div style="margin-left:20px" class="dataTables_info" id="example_info">
+                                    共<em class="margin-small-left margin-small-right">{{sum}}</em>条数据
+                                    每页显示<em class="margin-small-left margin-small-right">6</em>条
+                                    共<em class="margin-small-left margin-small-right">{{sum_page}}</em>页
+                                </div>
+                            </div>
+                            <div class="span6">
+                                <div class="dataTables_paginate paging_bootstrap pagination">
+                                    <ul>
+                                        <li class="prev"><a href="/testcontentrecordmanagement?typePage=pre&currentPage={{pre}}">← 上一页</a></li>
+                                        <li class="next"><a href="/testcontentrecordmanagement?typePage=next&currentPage={{next}}">下一页 → </a></li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+
+
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- /block -->
+    </div>
+
+
+
+
+    <div style="margin-top:500px">
+
+    </div>
+
+
+    <!--详细信息-->
+    <div id="myModal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" style="margin-top: 100px; display: none;">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">×</span>
+                    </button>
+                    <h4 id="modelTitle" class="modal-title">查看测试时间：</h4>
+                </div>
+                <div class="modal-body">
+                    <form>
+                        <div class="form-group">
+                            <label for="recipient-name" class="control-label">本次测试题库:</label>
+                            <textarea id="result" style="resize:none;width:100%"  rows="28" class="col-lg-12"></textarea>
+                        </div>
+                    </form>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+
+
+
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<script>
+    $(function () {
+        $('#datetimepicker').datetimepicker({
+            language: 'cn',
+            pick12HourFormat: true
+        });
+
+        $('#dateInput').click(function () {
+            $('#btnShowDate').click();
+        });
+
+
+        $('#datetimepicker1').datetimepicker({
+            language: 'cn',
+            pick12HourFormat: true
+        });
+
+        $('#dateInput1').click(function () {
+            $('#btnShowDate1').click();
+        });
+
+
+        $('#seacher').click(function () {
+            if ($('#dateInput').val == '') {
+                alert("请选择需要查询的时间范围");
+                return;
+            }
+            else if ($('#dateInput1') == '') {
+                alert("请选择需要查询的时间范围");
+                return;
+            }
+        });
+
+    });
+
+
+    function showInformation(id) {
+
+        $("#result").val('');
+        alert(id);
+        $("#myModal").modal('show');
+        var url = "/gettestcontentrecordanswer?testRecordId=" + id;
+        $.ajax({
+            type: "GET",
+            dataType: "json",
+            url: url,
+            success: function (result) {
+                console.log(result);
+                var jsons = JSON.parse(result)
+                str = ""
+                str = "考试结束时间:" + jsons[0].times + "\r\n"
+                for (var item in jsons) {
+                    if (jsons[item].contentSelect != undefined) {
+                        str += "选择题：\r\n";
+                        str += "测试题目：" + jsons[item].contentSelect + "\r\n";
+                        str += "" + jsons[item].contentOption + "\r\n";
+                        str += "测试分数：" + jsons[item].grade + "\r\n";
+                        str += "我的回答：" + jsons[item].answerContent + "\r\n";
+                        str += "我的得分：" + jsons[item].AnswerGrade + "\r\n";
+                        str += "\r\n";
+                    } else if (jsons[item].content != undefined) {
+                        str += "编程题：\r\n";
+                        str += "测试题目：" + jsons[item].content + "\r\n";
+                        str += "测试分数：" + jsons[item].grade + "\r\n";
+                        str += "我的回答：" + jsons[item].answerContent + "\r\n";
+                        str += "我的得分：" + jsons[item].AnswerGrade + "\r\n";
+                        str += "\r\n";
+                    }
+
+                }
+                $("#result").val(str);
+            },
+            error: function () {
+                alert("Error");
+            }
+        });
+    }
+
+
+</script>
+
+
+
+
+
+
+
+
+
+
+
+{% endblock %}

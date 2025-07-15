@@ -1,0 +1,24 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="container">
+    <h2>个人信息</h2>
+    <table class="table table-bordered">
+        <tr>
+            <th>用户名</th>
+            <td>{{ user.UserName }}</td>
+        </tr>
+        <tr>
+            <th>姓名</th>
+            <td>{{ user.Name }}</td>
+        </tr>
+        <tr>
+            <th>手机号码</th>
+            <td>{{ user.Phone }}</td>
+        </tr>
+        <tr>
+            <th>家庭住址</th>
+            <td>{{ user.Address }}</td>
+        </tr>
+    </table>
+</div>
+{% endblock %}

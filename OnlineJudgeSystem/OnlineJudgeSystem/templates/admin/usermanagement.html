@@ -1,0 +1,122 @@
+﻿{% extends "adminLayout.html" %}
+
+{% block content %}
+
+
+
+
+
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="main__title">
+                <h2> 学生列表 </h2>
+            </div>
+        </div>
+
+        <!-- items -->
+        <div class="col-12">
+            <div class="catalog catalog--1" data-scrollbar="true" tabindex="-1" style="overflow: hidden; outline: none;">
+                <div class="scroll-content">
+                    <div style="margin-left:20px" class="dataTables_filter">
+                        <a class="btn btn-success" href="/usermanagementadd">添加</a>
+                    </div>
+                    <div class="scroll-content">
+                        <table class="catalog__table">
+                            <thead>
+                                <tr role="row">
+                                    <th class="sorting_asc" role="columnheader" tabindex="0" aria-controls="example" rowspan="1" colspan="1" aria-sort="ascending" aria-label="Rendering engine: activate to sort column descending" style="width: 146px;">编号</th>
+                                    <th class="sorting" role="columnheader" tabindex="0" aria-controls="example" rowspan="1" colspan="1" aria-label="Browser: activate to sort column ascending" style="width: 215px;">用户名称</th>
+                                    <th class="sorting" role="columnheader" tabindex="0" aria-controls="example" rowspan="1" colspan="1" aria-label="Platform(s): activate to sort column ascending" style="width: 215px;">用户密码</th>
+                                    <th class="sorting" role="columnheader" tabindex="0" aria-controls="example" rowspan="1" colspan="1" aria-label="Engine version: activate to sort column ascending" style="width: 250px;">学生姓名</th>
+                                    <th class="sorting" role="columnheader" tabindex="0" aria-controls="example" rowspan="1" colspan="1" aria-label="Engine version: activate to sort column ascending" style="width: 250px;">学生班级</th>
+                                    <th class="sorting" role="columnheader" tabindex="0" aria-controls="example" rowspan="1" colspan="1" aria-label="CSS grade: activate to sort column ascending" style="width: 215px;">身份证号</th>
+                                    <th class="sorting" role="columnheader" tabindex="0" aria-controls="example" rowspan="1" colspan="1" aria-label="CSS grade: activate to sort column ascending" style="width: 215px;">手机号码</th>
+                                    <th class="sorting" role="columnheader" tabindex="0" aria-controls="example" rowspan="1" colspan="1" aria-label="CSS grade: activate to sort column ascending" style="width: 300px;">家庭住址</th>
+                                    <th class="sorting" role="columnheader" tabindex="0" aria-controls="example" rowspan="1" colspan="1" aria-label="CSS grade: activate to sort column ascending" style="width: 450px;">操作</th>
+                                </tr>
+                            </thead>
+
+                            <tbody>
+
+
+                                {% for item in datas %}
+                                <tr class="gradeA odd">
+                                    <td class=" sorting_1">
+                                        <div class="catalog__text"> {{item.Id}}</div>
+                                    </td>
+                                    <td class=" ">
+                                        <div class="catalog__text"> {{item.UserName}}</div>
+                                    </td>
+                                    <td class=" ">
+                                        <div class="catalog__text"> {{item.PWD}} </div>
+                                    </td>
+                                    <td class=" ">
+                                        <div class="catalog__text"> {{item.Name}} </div>
+                                    </td>
+                                    <td class=" ">
+                                        <div class="catalog__text"> {{item.Classes}} </div>
+                                    </td>
+                                    <td class=" ">
+                                        <div class="catalog__text"> {{item.Card}} </div>
+                                    </td>
+                                    <td class=" ">
+                                        <div class="catalog__text"> {{item.Phone}} </div>
+                                    </td>
+                                    <td class=" ">
+                                        <div class="catalog__text"> {{item.Address}} </div>
+                                    </td>
+
+                                    <td>
+                                        <a class="btn btn-primary" href="/usermanagementedit?id={{item.Id}}">编辑</a>
+                                        <a class="btn btn-danger" href="/usermanagementdelete?id={{item.Id}}">删除</a>
+                                    </td>
+                                </tr>
+
+                                {% endfor %}
+
+
+
+
+                            </tbody>
+                        </table>
+                    </div><div class="scrollbar-track scrollbar-track-x show" style="display: none;"><div class="scrollbar-thumb scrollbar-thumb-x" style="width: 1195px; transform: translate3d(0px, 0px, 0px);"></div></div><div class="scrollbar-track scrollbar-track-y show" style="display: none;"><div class="scrollbar-thumb scrollbar-thumb-y" style="height: 778px; transform: translate3d(0px, 0px, 0px);"></div></div>
+                </div><div class="scrollbar-track scrollbar-track-x show" style="display: none;"><div class="scrollbar-thumb scrollbar-thumb-x" style="width: 2274px; transform: translate3d(0px, 0px, 0px);"></div></div><div class="scrollbar-track scrollbar-track-y show" style="display: none;"><div class="scrollbar-thumb scrollbar-thumb-y" style="height: 758px; transform: translate3d(0px, 0px, 0px);"></div></div>
+            </div>
+        </div>
+        <!-- end items -->
+        <!-- paginator -->
+        <div class="col-12">
+            <div class="main__paginator">
+                <!-- amount -->
+                <span class="main__paginator-pages">总数据{{sum}} of 总分页{{sum_page}}</span>
+                <!-- end amount -->
+
+                <ul style=" color: red; background-color: bisque; display: inline-flex " class="main__paginator-list">
+                    <li>
+                        <a style="color:white" href="/usermanagement?typePage=pre&currentPage={{pre}}">
+                            <i class="ti ti-chevron-left"></i>
+                            <span style="color:white">上一页</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a style="color:white" href="/usermanagement?typePage=next&currentPage={{next}}">
+                            <span style="color:white">下一页</span>
+                            <i class="ti ti-chevron-right"></i>
+                        </a>
+                    </li>
+                </ul>
+
+
+            </div>
+        </div>
+        <!-- end paginator -->
+    </div>
+</div>
+
+
+
+
+
+{% endblock %}

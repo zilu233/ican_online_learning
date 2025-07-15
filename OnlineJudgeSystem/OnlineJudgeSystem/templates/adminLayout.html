@@ -1,0 +1,301 @@
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <link href="../../static/admin/content/bootstrap.min.css" rel="stylesheet" />
+    <link href="../../static/admin/content/slimselect.css" rel="stylesheet" />
+    <link href="../../static/admin/content/admin.css" rel="stylesheet" />
+
+
+    <!-- Icon font -->
+    <link rel="stylesheet" href="./tabler-icons.min.css">
+
+
+    <meta name="description" content="Online Movies, TV Shows &amp; Cinema HTML Template">
+    <meta name="keywords" content="">
+    <meta name="author" content="Dmitry Volkov">
+    <title>python程序设计在线学习系统 </title>
+    <style id="smooth-scrollbar-style">
+        [data-scrollbar] {
+            display: block;
+            position: relative;
+        }
+
+        .scroll-content {
+            -webkit-transform: translate3d(0, 0, 0);
+            transform: translate3d(0, 0, 0);
+        }
+
+        .scrollbar-track {
+            position: absolute;
+            opacity: 0;
+            z-index: 1;
+            background: rgba(222, 222, 222, .75);
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+            -webkit-transition: opacity 0.5s 0.5s ease-out;
+            transition: opacity 0.5s 0.5s ease-out;
+        }
+
+            .scrollbar-track.show,
+            .scrollbar-track:hover {
+                opacity: 1;
+                -webkit-transition-delay: 0s;
+                transition-delay: 0s;
+            }
+
+        .scrollbar-track-x {
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 8px;
+        }
+
+        .scrollbar-track-y {
+            top: 0;
+            right: 0;
+            width: 8px;
+            height: 100%;
+        }
+
+        .scrollbar-thumb {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 8px;
+            height: 8px;
+            background: rgba(0, 0, 0, .5);
+            border-radius: 4px;
+        }
+    </style>
+    <style id="smooth-scrollbar-style">
+        [data-scrollbar] {
+            display: block;
+            position: relative;
+        }
+
+        .scroll-content {
+            -webkit-transform: translate3d(0, 0, 0);
+            transform: translate3d(0, 0, 0);
+        }
+
+        .scrollbar-track {
+            position: absolute;
+            opacity: 0;
+            z-index: 1;
+            background: rgba(222, 222, 222, .75);
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+            -webkit-transition: opacity 0.5s 0.5s ease-out;
+            transition: opacity 0.5s 0.5s ease-out;
+        }
+
+            .scrollbar-track.show,
+            .scrollbar-track:hover {
+                opacity: 1;
+                -webkit-transition-delay: 0s;
+                transition-delay: 0s;
+            }
+
+        .scrollbar-track-x {
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 8px;
+        }
+
+        .scrollbar-track-y {
+            top: 0;
+            right: 0;
+            width: 8px;
+            height: 100%;
+        }
+
+        .scrollbar-thumb {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 8px;
+            height: 8px;
+            background: rgba(0, 0, 0, .5);
+            border-radius: 4px;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- header -->
+    <header class="header">
+        <div class="header__content">
+            <!-- header logo -->
+
+
+            <h2 style="color:white"> 在线考试系统 </h2>
+            <!-- end header logo -->
+            <!-- header menu btn -->
+            <button class="header__btn" type="button">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+            <!-- end header menu btn -->
+        </div>
+    </header>
+    <!-- end header -->
+    <!-- sidebar -->
+    <div class="sidebar">
+        <!-- sidebar logo -->
+        <h2 style="color: white; margin-left: 35px;"> 在线考试系统 </h2>
+
+        <!-- end sidebar logo -->
+        <!-- sidebar user -->
+        <div class="sidebar__user">
+            <div class="sidebar__user-img">
+                <img src="../static/admin/photo.jpeg" />
+            </div>
+
+            <div class="sidebar__user-title">
+                <span>Admin</span>
+                <p> 欢迎管理员到来 </p>
+            </div>
+
+
+        </div>
+        <!-- end sidebar user -->
+        <!-- sidebar nav -->
+        <div class="sidebar__nav-wrap">
+            <ul class="sidebar__nav">
+                <li class="sidebar__nav-item">
+                    <a href="/adminindex" class="sidebar__nav-link"><i class="ti ti-layout-grid"></i> <span>系统首页</span></a>
+                </li>
+
+                <li class="sidebar__nav-item">
+                    <a href="/usermanagement" class="sidebar__nav-link sidebar__nav-link"><i class="ti ti-movie"></i> <span>学生管理</span></a>
+                </li>
+
+                <li class="sidebar__nav-item">
+                    <a href="/logout" class="sidebar__nav-link"><i class="ti ti-users"></i> <span>退出系统</span></a>
+                </li>
+
+
+            </ul>
+        </div>
+        <!-- end sidebar nav -->
+        <!-- sidebar copyright -->
+        <div class="sidebar__copyright">© HOTFLIX, 2xx—20xx. <br> <a href="#" target="_blank"> </a></div>
+        <!-- end sidebar copyright -->
+    </div>
+    <!-- end sidebar -->
+    <!-- main content -->
+    <main class="main">
+        <div class="container-fluid">
+            <div class="row">
+                <!-- main title -->
+                <div class="col-12">
+                    <div class="main__title">
+
+                        <div class="main__title-wrap">
+
+
+                            <select class="filter__select" name="sort" id="filter__sort" data-id="ss-g8w8agjm" tabindex="-1" aria-hidden="true" style="display: none;">
+                                <option value="0">Date created</option>
+                                <option value="1">Rating</option>
+                                <option value="2">Views</option>
+                            </select>
+                            <div data-id="ss-g8w8agjm" id="ss-g8w8agjm" tabindex="0" class="ss-main filter__select ss-open-below" role="combobox" aria-haspopup="listbox" aria-controls="ss-g8w8agjm" aria-expanded="true" aria-activedescendant="57l0ev8r">
+                                
+                                <a href="/logout">
+                                    <div class="ss-values"><div class="ss-single"> 退出登录 </div></div>
+                                </a>
+
+                                <div class="ss-deselect ss-hide">
+                                </div>
+                                <svg class="ss-arrow" viewBox="0 0 100 100"><path d="M10,70 L50,30 L90,70"></path></svg>
+                            </div>
+
+
+
+                        </div>
+                    </div>
+                </div>
+                <!-- end main title -->
+                <!-- items -->
+                <div class="col-12">
+
+
+
+
+
+
+
+
+                    {% block content %}{% endblock %}
+
+
+
+
+
+
+
+
+                </div>
+
+            </div>
+        </div>
+    </main>
+    <!-- end main content -->
+    <!-- status modal -->
+    <div class="modal fade" id="modal-status" tabindex="-1" aria-labelledby="modal-status" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal__content">
+                    <form action="https://v.bootstrapmb.com/2025/1/xwdgy15660/catalog.html#" class="modal__form">
+                        <h4 class="modal__title">Status change</h4>
+
+                        <p class="modal__text">Are you sure about immediately change status?</p>
+
+                        <div class="modal__btns">
+                            <button class="modal__btn modal__btn--apply" type="button"><span>Apply</span></button>
+                            <button class="modal__btn modal__btn--dismiss" type="button" data-bs-dismiss="modal" aria-label="Close"><span>Dismiss</span></button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- end status modal -->
+    <!-- delete modal -->
+    <div class="modal fade" id="modal-delete" tabindex="-1" aria-labelledby="modal-delete" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal__content">
+                    <form action="https://v.bootstrapmb.com/2025/1/xwdgy15660/catalog.html#" class="modal__form">
+                        <h4 class="modal__title">Item delete</h4>
+
+                        <p class="modal__text">Are you sure to permanently delete this item?</p>
+
+                        <div class="modal__btns">
+                            <button class="modal__btn modal__btn--apply" type="button"><span>Delete</span></button>
+                            <button class="modal__btn modal__btn--dismiss" type="button" data-bs-dismiss="modal" aria-label="Close"><span>Dismiss</span></button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- end delete modal -->
+
+
+
+
+    <script src="/static/scripts/bootstrap.js"></script>
+    <script src="/static/scripts/respond.js"></script>
+
+</body>
+</html>

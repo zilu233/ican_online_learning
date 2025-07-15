@@ -1,0 +1,114 @@
+<html style="" class=" js flexbox canvas canvastext webgl no-touch geolocation postmessage websqldatabase indexeddb hashchange history draganddrop websockets rgba hsla multiplebgs backgroundsize borderimage borderradius boxshadow textshadow opacity cssanimations csscolumns cssgradients cssreflections csstransforms csstransforms3d csstransitions fontface generatedcontent video audio localstorage sessionstorage webworkers no-applicationcache svg inlinesvg smil svgclippaths js flexbox canvas canvastext webgl no-touch geolocation postmessage websqldatabase indexeddb hashchange history draganddrop websockets rgba hsla multiplebgs backgroundsize borderimage borderradius boxshadow textshadow opacity cssanimations csscolumns cssgradients cssreflections csstransforms csstransforms3d csstransitions fontface generatedcontent video audio localstorage sessionstorage webworkers no-applicationcache svg inlinesvg smil svgclippaths js flexbox canvas canvastext webgl no-touch geolocation postmessage websqldatabase indexeddb hashchange history draganddrop websockets rgba hsla multiplebgs backgroundsize borderimage borderradius boxshadow textshadow opacity cssanimations csscolumns cssgradients cssreflections csstransforms csstransforms3d csstransitions fontface generatedcontent video audio localstorage sessionstorage webworkers no-applicationcache svg inlinesvg smil svgclippaths">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }}</title>
+    <link href="../static/content/bootstrap.min.css" rel="stylesheet" />
+    <link href="../static/content/styles.css" rel="stylesheet" />
+    <link href="../static/content/skin.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/apple-style.css') }}">
+
+</head>
+
+
+<body class="wysihtml5-supported">
+    <div class="navbar navbar-fixed-top">
+        <div class="navbar-inner">
+            <div class="container-fluid">
+                <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                </a>
+                <a class="brand" href="/home">python程序设计在线学习系统</a>
+                <div class="nav-collapse collapse">
+                    <ul class="nav pull-right">
+                        {% if userType == 'teacher' %}
+                        <li>
+                            <a href="/home"><i class="icon-chevron-right"></i>系统首页</a>
+                        </li>
+
+                        <li>
+                            <a href="/testcontentmanagement">
+                                编程题库
+                            </a>
+                        </li>
+
+                        <li>
+                            <a href="/testselectmanagement">
+                                选题题库
+                            </a>
+                        </li>
+
+                        <li>
+                            <a href="/testmanagement">
+                                试卷管理
+                            </a>
+                        </li>
+
+                        <li>
+                            <a href="/testcontentrecordmanagement"><i class="icon-chevron-right"></i>做题记录</a>
+                        </li>
+                        {% endif %}
+
+                        {% if userType == 'student'  %}
+                        <li>
+                            <a href="/myonlinetest"><i class="icon-chevron-right"></i> 在线答题</a>
+                        </li>
+                        <li>
+                            <a href="/mytestcontentrecordmanagement"><i class="icon-chevron-right"></i>我的做题</a>
+                        </li>
+                        <li>
+                            <a href="/myprofile"><i class="icon-chevron-right"></i>个人信息</a>
+                        </li>
+
+                        {% endif %}
+
+
+                        {% if session == None %}
+                        <li>
+                            <a href="/login"><i class="icon-chevron-right"></i> 登录系统</a>
+                        </li>
+                        <li>
+                            <a href="/register"><i class="icon-chevron-right"></i> 注册用户</a>
+                        </li>
+                        {% else %}
+                        <li>
+                            <a href="/logout"><i class="icon-chevron-right"></i> 退出系统</a>
+                        </li>
+                        {% endif %}
+                    </ul>
+
+                </div>
+                <!--/.nav-collapse -->
+            </div>
+        </div>
+    </div>
+
+
+    <div class="container-fluid">
+        <div class="row-fluid">
+
+            <!--/span-->
+            {% block content %}
+            <div class="container">
+                <!-- 你的页面内容 -->
+            </div>
+            {% endblock %}
+
+        </div>
+    </div>
+
+    <script src="/static/scripts/bootstrap.js"></script>
+    <script src="/static/scripts/respond.js"></script>
+    {% block scripts %}{% endblock %}
+
+</body>
+</html>
+
+
+
+
+
+
+

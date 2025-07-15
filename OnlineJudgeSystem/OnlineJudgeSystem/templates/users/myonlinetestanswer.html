@@ -1,0 +1,487 @@
+﻿{% extends "layout.html" %}
+
+{% block content %}
+
+
+<style>
+
+    /* 自定义栅格容器样式 */
+    .question-container {
+        display: block;
+    }
+
+    /* 自定义问题样式，每行显示 4 个 */
+    .question {
+        box-sizing: border-box;
+        margin-bottom: 25px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid #ddd;
+    }
+
+        .question p {
+            font-weight: bold;
+        }
+
+    label {
+        display: block;
+        margin-bottom: 5px;
+    }
+
+    .options {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 20px;
+    }
+
+    input[type="radio"],
+    input[type="checkbox"] {
+        margin-right: 10px;
+    }
+</style>
+
+<!--
+<style>
+
+    /* 自定义栅格容器样式 */
+    .question-container {
+        display: flex;
+        flex-wrap: wrap;
+        margin: -10px; /* 抵消子元素的外边距 */
+    }
+
+    /* 自定义问题样式，每行显示 4 个 */
+    .question {
+        width: calc(25% - 10px); /* 每个元素占 25% 宽度，减去左右外边距 */
+        margin: 10px;
+        box-sizing: border-box;
+
+    }
+
+    .question p {
+        font-weight: bold;
+    }
+
+    label {
+        display: block;
+        margin-bottom: 5px;
+
+    }
+
+    input[type="radio"],
+    input[type="checkbox"] {
+        margin-right: 10px;
+    }
+</style>
+-->
+
+<div style="margin-top:80px">
+
+</div>
+
+
+
+<h2>在线做题</h2>
+<div class="row-fluid">
+    <div class="block">
+        <div class="navbar navbar-inner block-header">
+            <div class="muted pull-left">在线做题</div>
+        </div>
+
+        <div class="block-content collapse in">
+            <h1 style="text-align:center">试卷标题：{{test.TestName}} (选题数量：{{test.SelectText}} - 编程题数量：{{test.ProgrameText}})</h1>
+            {% if test_select_len > 0 %}
+            <h3>选择题：</h3>
+            <div class="span12">
+                <div id="example_wrapper" class="dataTables_wrapper form-inline" role="grid">
+                    <div class="question-container">
+                        <!-- 这里假设 datas 是一个包含多个问题的列表 -->
+                        {% for item in test_select %}
+                        <div class="question">
+                            <p>{{ item.Content }}</p>
+                            <div class="options">
+                                <label><input type="radio" name="question{{ loop.index }}" value="A" id="{{ item.Id }}"> A: {{ item.AnswerA }}</label>
+                                <label><input type="radio" name="question{{ loop.index }}" value="B" id="{{ item.Id }}"> B: {{ item.AnswerB }}</label>
+                                <label><input type="radio" name="question{{ loop.index }}" value="C" id="{{ item.Id }}"> C: {{ item.AnswerC }}</label>
+                                <label><input type="radio" name="question{{ loop.index }}" value="D" id="{{ item.Id }}"> D: {{ item.AnswerD }}</label>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    <button id="submitBtn" type="submit">提交</button>
+                </div>
+            </div>
+            {% endif %}
+            <!--
+                        {% if test_select_len > 0 %}
+                        <h3>选择题：</h3>
+                        <div class="span12">
+                            <div id="example_wrapper" class="dataTables_wrapper form-inline" role="grid">
+                                <div class="question-container">
+
+                                  {% for item in test_select %}
+                                    <div class="question ">
+                                        <p>{{item.Content}}</p>
+                                        <div class="options">
+                                            <label>
+                                                <input type="radio" id="{{item.Id}}" name="question{{ loop.index }}" value="A"> A: {{item.AnswerA}}
+                                            </label>
+                                            <label>
+                                                <input type="radio" id="{{item.Id}}" name="question{{ loop.index }}" value="B"> B: {{item.AnswerB}}
+                                            </label>
+                                            <label>
+                                                <input type="radio" id="{{item.Id}}" name="question{{ loop.index }}" value="C"> C: {{item.AnswerC}}
+                                            </label>
+                                            <label>
+                                                <input type="radio" id="{{item.Id}}" name="question{{ loop.index }}" value="D"> D: {{item.AnswerD}}
+                                            </label>
+                                        </div>
+            -->
+            <!--以前的
+                <label class="me-2">
+                    <input type="radio" id="{{item.Id}}" name="question{{ loop.index }}" value="A"> A: {{item.AnswerA}}
+                </label>
+                <label class="me-2">
+                    <input type="radio" id="{{item.Id}}" name="question{{ loop.index }}" value="B"> B: {{item.AnswerB}}
+                </label>
+                <label class="me-2">
+                    <input type="radio" id="{{item.Id}}" name="question{{ loop.index }}" value="C"> C: {{item.AnswerC}}
+                </label>
+                <label class="me-2">
+                    <input type="radio" id="{{item.Id}}" name="question{{ loop.index }}" value="D"> D: {{item.AnswerD}}
+                </label>
+            </div>
+                -->
+            <!--
+                                    {% endfor %}
+                                </div>
+
+                                <button id="submitBtn" type="submit">提交</button>
+                            </div>
+                        </div>
+                        {% endif %}
+            -->
+            {% if test_content_len > 0 %}
+            <h3>编程题：</h3>
+            <!-- 标题，题目名称选择等 -->
+            <div class="span12">
+                <div id="example_wrapper" class="dataTables_wrapper form-inline" role="grid">
+
+
+                    <select id="selectContent" style="width:95%">
+                        <option value="0"></option>
+
+                        {% for item in test_content%}
+                        <option value="{{item.Id}}">{{item.Content}}</option>
+                        {% endfor %}
+
+                    </select>
+
+                    <h4><p id="grade">题目分数：</p></h4>
+                    <h3><p style="width:100%;background-color:lightblue" id="content">题目内容</p></h3>
+                    <p style="width:100%;background-color:orangered;" id="error"> error </p>
+
+                </div>
+            </div>
+
+
+            <!-- 表单 -->
+            <form id="form2" onsubmit="return false" action="##" method="post">
+                <div class="row" style="margin-left:120px">
+                    <!--<div class="row">-->
+                    <!--<div style="width:100%;">
+                     输入python代码：-->
+                    <div style="width: 102%; margin-left: -83px;" class="span6">
+                        <div class="block">
+                            <div class="navbar navbar-inner block-header">
+                                <div class="muted pull-left">请根据题目输入python代码：</div>
+                            </div>
+
+
+                            <input type="hidden" id="testRecordId" name="testRecordId" value="" />
+                            <input type="hidden" id="testAnswerId" name="testAnswerId" value="" />
+                            <input type="hidden" id="testContentId" name="testContentId" value="" />
+
+                            <div class="block-content collapse in">
+                                <div class="span12">
+                                    <textarea id="pycode" name="pycode" style="font-size:18px; width:100%;resize:none" rows="20" type="text" class="span6" id="typeahead" data-provide="typeahead" data-items="4" data-source="[&quot;Alabama&quot;,&quot;Alaska&quot;,&quot;Arizona&quot;,&quot;Arkansas&quot;,&quot;California&quot;,&quot;Colorado&quot;,&quot;Connecticut&quot;,&quot;Delaware&quot;,&quot;Florida&quot;,&quot;Georgia&quot;,&quot;Hawaii&quot;,&quot;Idaho&quot;,&quot;Illinois&quot;,&quot;Indiana&quot;,&quot;Iowa&quot;,&quot;Kansas&quot;,&quot;Kentucky&quot;,&quot;Louisiana&quot;,&quot;Maine&quot;,&quot;Maryland&quot;,&quot;Massachusetts&quot;,&quot;Michigan&quot;,&quot;Minnesota&quot;,&quot;Mississippi&quot;,&quot;Missouri&quot;,&quot;Montana&quot;,&quot;Nebraska&quot;,&quot;Nevada&quot;,&quot;New Hampshire&quot;,&quot;New Jersey&quot;,&quot;New Mexico&quot;,&quot;New York&quot;,&quot;North Dakota&quot;,&quot;North Carolina&quot;,&quot;Ohio&quot;,&quot;Oklahoma&quot;,&quot;Oregon&quot;,&quot;Pennsylvania&quot;,&quot;Rhode Island&quot;,&quot;South Carolina&quot;,&quot;South Dakota&quot;,&quot;Tennessee&quot;,&quot;Texas&quot;,&quot;Utah&quot;,&quot;Vermont&quot;,&quot;Virginia&quot;,&quot;Washington&quot;,&quot;West Virginia&quot;,&quot;Wisconsin&quot;,&quot;Wyoming&quot;]"></textarea>
+
+                                    <!-- 新增：运行结果显示框 -->
+                                    <div style="margin-top:15px;">
+                                        <label style="font-weight:bold;">运行结果反馈：</label>
+                                        <div id="run-result" style="border: 1px solid #ccc; padding: 10px; background-color:#f6f8fa; color:#333; white-space:pre-wrap;"></div>
+                                    </div>
+
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+
+                </div>
+
+                <center>
+                    <button id="runcode" type="submit">运行代码</button>
+                </center>
+            </form>
+
+            <!-- 新增交卷按钮 -->
+            <center>
+                <button id="submitExam" type="button">交卷</button>
+            </center>
+            {% endif %}
+
+        </div>
+
+
+    </div>
+
+</div>
+
+
+
+
+
+
+
+
+
+
+<script src="../static/scripts/jquery-1.10.2.min.js"></script>
+<script>
+
+    var test_select_is_end  = false;
+    var test_content_is_end = false;
+
+    var test_record_id   = {{ test_record_id }}
+    var select_value_id  = {{ test_select_record }};
+    var content_value_id = {{ test_content_record }};
+
+    var countContent = 0;
+
+    function testOver() {
+        $.ajax({
+            type: "GET",
+            dataType: "json",
+            url: "/testover?test_record_id=" + test_record_id,
+            success: function (result) {
+            },
+            error: function () {
+                alert("Error");
+            }
+        });
+    }
+
+
+    function checkIsOver() {
+        if (test_select_is_end && test_content_is_end) {
+            testOver();
+            alert("试卷已经做完！！！")
+            window.location.href = "/home"
+        }
+    }
+
+
+    $(function () {
+        //$('#runcode').attr({ "disabled": "disabled" });
+        $('#error').css("display", "none");
+
+        /*
+        $('#start').click(function () {
+            $.ajax({
+                type: "GET",
+                dataType: "json",
+                url: "/startmyonlineanswer",
+                success: function (result) {
+                    $('#start').attr({ "disabled": "disabled" });
+                    $('#runcode').attr("disabled", false);
+                    $('#runcode').attr("disabled", '');
+                    $('#runcode').removeAttr("disabled");
+                    console.log(result);
+                    var jsons = JSON.parse(result)
+                    for (var item in jsons) {
+                        if (jsons[item].content != undefined) {
+                            $('#selectContent').append("<option value='" + jsons[item].id + "'>" + jsons[item].content + "</option>");
+                        }
+                    }
+                },
+                error: function (XMLHttpRequest, textStatus, errorThrown) {
+                    //alert(XMLHttpRequest.status);
+                    //alert(XMLHttpRequest.readyState);
+                    //alert(textStatus);
+                    alert("123");
+                }
+            });
+        });
+        */
+
+
+        $('#selectContent').change(function () {
+            //alert($(this).children('option:selected').val());
+
+            var testId = $(this).children('option:selected').val();
+            $('#error').css("display", "none");
+            if (testId == 0) {
+                return;
+            }
+
+            $.ajax({
+                type: "GET",
+                dataType: "json",
+                url: "/getTestContent?id=" + testId + "&contentId=" + JSON.stringify(content_value_id),
+                success: function (result) {
+                    for (var item in result) {
+                        //alert(result[item]);
+                        if (result[item].content != undefined) {
+                            //alert("text:" + result[item].CityName);
+                            $("#testRecordId").val(result[item].testRecordId);
+                            $("#testAnswerId").val(result[item].testAnswerId);
+                            $("#testContentId").val(result[item].testContentId);
+                            $("#grade").html("题目分数:" + result[item].grade);
+                            $("#content").html("题目内容:" + result[item].content);
+                        }
+                    }
+                },
+                error: function () {
+                    alert("Error");
+                }
+            });
+        });
+
+
+        $('#runcode').click(function () {
+            checkIsOver();
+            var value = $('#selectContent').val();
+            if (value === "0") {
+                return;
+            }
+
+
+            $.ajax({
+                type: "POST",
+                dataType: "json",
+                url: "/runcode",
+                data: $('#form2').serialize(),
+                success: function (result) {
+                    var jsons = JSON.parse(result)
+
+                    // 显示运行结果到 div
+                    $('#run-result').text(jsons[1].msg);
+
+                    // 设置样式
+                    if (jsons[0].code == 1) {
+                        $('#run-result').css("color", "green");
+                    } else {
+                        $('#run-result').css("color", "red");
+                    }
+
+
+                    $("#selectContent option:selected").remove();
+
+                    if (jsons[0].code == 0) {
+                        $('#error').css("display", "block");
+                        $('#error').text(jsons[1].msg);
+                    }
+
+                    countContent = $('#selectContent option').length
+                    if (countContent == 1) {
+                        test_content_is_end = true;
+                        checkIsOver();
+                        $('#runcode').attr("disabled", true);
+                    }
+                },
+                error: function () {
+                    alert("异常！");
+                }
+            });
+        });
+
+
+        //textarea支持tab缩进
+        $("#pycode").on(
+            'keydown',
+            function (e) {
+                if (e.keyCode == 9) {
+                    e.preventDefault();
+                    var indent = '    ';
+                    var start = this.selectionStart;
+                    var end = this.selectionEnd;
+                    var selected = window.getSelection().toString();
+                    selected = indent + selected.replace(/\n/g, '\n' + indent);
+                    this.value = this.value.substring(0, start) + selected
+                        + this.value.substring(end);
+                    this.setSelectionRange(start + indent.length, start
+                        + selected.length);
+                }
+            })
+    });
+
+
+</script>
+
+
+
+
+
+
+
+
+
+<script>
+    $(document).ready(function () {
+        $('#submitBtn').click(function () {
+            $('#submitBtn').prop('disabled', true);
+
+            test_select_is_end = true;
+            alert("选择题已经做完")
+
+
+            // 存储所有问题的答案
+            var answers = {};
+            // 遍历所有选择题
+            $('.question').each(function (index) {
+                var questionNumber = index + 1;
+                var selectedAnswer = $('input[name="question' + questionNumber + '"]:checked').val();
+                var id = $('input[name="question' + questionNumber + '"]:checked').attr("id");
+                //alert(id);
+                //answers['question' + questionNumber] = selectedAnswer;
+                answers[id] = selectedAnswer;
+            });
+            answers['select_id'] = select_value_id
+
+            // 使用 AJAX 发送答案到后端
+            $.ajax({
+                url: '/selectanswers',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(answers),
+                success: function (response) {
+                    checkIsOver();
+                },
+                error: function (error) {
+                    console.error('Error:', error);
+                }
+            });
+        });
+    });
+</script>
+
+<script>
+    $(function () {
+        // ...原有代码...
+
+        // 新增交卷按钮事件
+        $('#submitExam').click(function () {
+            testOver();
+            alert("已交卷，系统将返回首页！");
+            window.location.href = "/home";
+        });
+    });
+</script>
+
+
+
+
+
+
+{% endblock %}

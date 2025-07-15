@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <title>
+python程序设计在线学习系统
+    </title>
+
+    <link href="../static/loginRegister/style.css" rel="stylesheet" />
+
+</head>
+<body>
+
+    <div class="container">
+        <div class="welcome">
+            <div  class="pinkbox" style="transform: translateX(0%); background: #CBC0D3;">
+                <div style="margin-top: -90px;" class="signup nodisplay">
+                    <h1>注册</h1>
+                    <form action="register" method="post" autocomplete="off">
+                        <input name="username" type="text" placeholder="用户名">
+                        <input name="pwd" type="password" placeholder="密码">
+                        <input name="name" type="text" placeholder="姓名">
+                        <input name="card"  type="number" placeholder="身份证">
+                        <input name="phone"   type="number" placeholder="电话号码">
+                        <input name="address"   type="text" placeholder="住址">
+
+                        <select name="types" style=" background: #EAC7CC; width: 72%; color: #ce7d88; border: 0; border-bottom: 1px solid rgba(246, 246, 246, 0.5); padding: 9px; margin: 7px;" type="checkbox" id="remember">
+                            <option value="0">教师</option>
+                            <option value="1">学生</option>
+                        </select>
+                        <button class="button submit">创建账号 </button>
+                    </form>
+                </div>
+                <div class="signin">
+                    <h1>登录</h1>
+                    <form action="login" method="post" class="more-padding" autocomplete="off">
+                        <input name="username" type="text" placeholder="用户名">
+                        <input name="pwd"  type="password" placeholder="密码">
+
+                        <select name="types" style=" background: #EAC7CC; width: 72%; color: #ce7d88; border: 0; border-bottom: 1px solid rgba(246, 246, 246, 0.5); padding: 9px; margin: 7px;" type="checkbox" id="remember">
+                            <option value="0">管理员</option>
+                            <option value="1">教师</option>
+                            <option value="2">学生</option>
+                        </select>
+
+                        <button class="button submit">登录</button>
+                    </form>
+                </div>
+            </div>
+
+            <div class="leftbox">
+                <h2 class="title">
+                  <span>python</span>
+                  <br>学习系统
+                </h2>
+                <img class="flower smaller" src="../static/loginRegister/1.jpg" />
+                <p class="account">已经有账号了?</p>
+                <button class="button" id="signin">登录</button>
+            </div>
+            <div class="rightbox">
+                <h2 class="title">
+                    <span>python</span>
+                    <br>学习系统
+                </h2>
+
+                <img class="flower" src="../static/loginRegister/2.jpg" />
+                <p class="account">还没有账号?</p>
+                <button class="button" id="signup">注册</button>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- partial -->
+    <script src="../static/loginRegister/jquery.min.js"></script>
+    <script src="../static/loginRegister/script.js"></script>>
+    {% if error %}
+    <script>
+        window.onload = function() {
+            alert("{{ error }}");
+        }
+    </script>
+    {% endif %}
+
+</body>
+</html>

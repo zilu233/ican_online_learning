@@ -1,0 +1,165 @@
+﻿{% extends "adminLayout.html" %}
+
+{% block content %}
+
+
+
+
+
+
+
+
+
+
+<script src="../static/content/echarts/echarts.min.js"></script>
+
+<div class="container-fluid">
+
+    <h1 style="color:white"><i class="ti ti-trophy"></i> 系统首页 </h1>
+
+    <div class="row">
+        <!-- dashbox -->
+        <div class="col-12 col-xl-12">
+            <div class="dashbox">
+                <div class="dashbox__title">
+
+
+                </div>
+
+                <div class="dashbox__table-wrap dashbox__table-wrap--1" data-scrollbar="true" tabindex="-1" style="overflow: hidden; outline: none;">
+                    <div class="scroll-content">
+                        <div class="scroll-content">
+
+
+                            <div class="span12 chart">
+
+                                <!-- 为 ECharts 准备一个定义了宽高的 DOM -->
+                                <div id="main" style="width: 100%;height:480px;"></div>
+                                <script type="text/javascript">
+                        // 基于准备好的dom，初始化echarts实例
+                        var myChart = echarts.init(document.getElementById('main'));
+
+                        // 指定图表的配置项和数据
+                        var option = {
+                            title: {
+                                text: 'python程序设计在线学习系统统计'
+                            },
+                            tooltip: {},
+                            legend: {
+                                data: ['网站统计信息']
+                            },
+                            xAxis: {
+                                data: ['学生', '题库', '答题', '管理员', '正确率', '错误率']
+                            },
+                            yAxis: {},
+                            series: [
+                                {
+                                    name: '统计个数',
+                                    type: 'bar',
+                                    data: {{ datas_count }}
+                                }
+                            ]
+                        };
+
+                        // 使用刚指定的配置项和数据显示图表。
+                        myChart.setOption(option);
+                                </script>
+                            </div>
+
+
+
+
+
+
+
+
+                        </div><div class="scrollbar-track scrollbar-track-x show" style="display: none;"><div class="scrollbar-thumb scrollbar-thumb-x" style="width: 585px; transform: translate3d(0px, 0px, 0px);"></div></div><div class="scrollbar-track scrollbar-track-y show" style="display: none;"><div class="scrollbar-thumb scrollbar-thumb-y" style="height: 268px; transform: translate3d(0px, 0px, 0px);"></div></div>
+                    </div><div class="scrollbar-track scrollbar-track-x show" style="display: none;"><div class="scrollbar-thumb scrollbar-thumb-x" style="width: 1244px; transform: translate3d(0px, 0px, 0px);"></div></div><div class="scrollbar-track scrollbar-track-y show" style="display: none;"><div class="scrollbar-thumb scrollbar-thumb-y" style="height: 269px; transform: translate3d(0px, 0px, 0px);"></div></div>
+                </div>
+            </div>
+        </div>
+
+
+
+
+
+
+
+
+
+
+
+        <div class="col-12 col-xl-12">
+            <div class="dashbox">
+                <div class="dashbox__title">
+                    <h3><i class="ti ti-star-half-filled"></i>  编程题库 </h3>
+                </div>
+
+                <div class="dashbox__table-wrap dashbox__table-wrap--4" data-scrollbar="true" tabindex="-1" style="overflow: hidden; outline: none;">
+                    <div class="scroll-content">
+                        <div class="scroll-content">
+
+
+
+
+                            <table style="color: white;" cellpadding="0" cellspacing="0" border="0" class="table table-striped table-bordered dataTable" id="example" aria-describedby="example_info">
+                                <thead>
+                                    <tr role="row">
+                                        <th class="sorting_asc" role="columnheader" tabindex="0" aria-controls="example" rowspan="1" colspan="1" aria-sort="ascending" aria-label="Rendering engine: activate to sort column descending" style="width: 146px;">编号</th>
+                                        <th class="sorting" role="columnheader" tabindex="0" aria-controls="example" rowspan="1" colspan="1" aria-label="Browser: activate to sort column ascending" style="width: 400px;">题库内容</th>
+                                        <th class="sorting" role="columnheader" tabindex="0" aria-controls="example" rowspan="1" colspan="1" aria-label="Platform(s): activate to sort column ascending" style="width: 200px;">测试用例</th>
+                                        <th class="sorting" role="columnheader" tabindex="0" aria-controls="example" rowspan="1" colspan="1" aria-label="Engine version: activate to sort column ascending" style="width: 250px;">题库分数</th>
+                                    </tr>
+                                </thead>
+
+                                <tbody style="color: white;" role="alert" aria-live="polite" aria-relevant="all">
+                                    {% for item in datas_test %}
+                                    <tr class="gradeA odd">
+                                        
+                                        <td class="  sorting_1">
+                                            <div class="catalog__text"> {{item.Id}}</div>
+                                        </td>
+                                        <td class=" ">
+                                            <div class="catalog__text"> {{item.Content}}</div>
+                                        </td>
+                                        <td class="center ">
+                                            <div class="catalog__text"> {{item.Result}}</div>
+                                        </td>
+                                        <td class="center ">
+                                            <div class="catalog__text"> {{item.Grade}}</div>
+                                        </td>
+                                    </tr>
+
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+
+
+
+
+
+
+                        </div><div class="scrollbar-track scrollbar-track-x show" style="display: none;"><div class="scrollbar-thumb scrollbar-thumb-x" style="width: 585px; transform: translate3d(0px, 0px, 0px);"></div></div><div class="scrollbar-track scrollbar-track-y show" style="display: none;"><div class="scrollbar-thumb scrollbar-thumb-y" style="height: 268px; transform: translate3d(0px, 0px, 0px);"></div></div>
+                    </div><div class="scrollbar-track scrollbar-track-x show" style="display: none;"><div class="scrollbar-thumb scrollbar-thumb-x" style="width: 1244px; transform: translate3d(0px, 0px, 0px);"></div></div><div class="scrollbar-track scrollbar-track-y show" style="display: none;"><div class="scrollbar-thumb scrollbar-thumb-y" style="height: 269px; transform: translate3d(0px, 0px, 0px);"></div></div>
+                </div>
+            </div>
+        </div>
+        <!-- end dashbox -->
+    </div>
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+{% endblock %}

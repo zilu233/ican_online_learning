@@ -1,0 +1,233 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ test.TestName }} - 在线考试</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-50 font-sans">
+    <div class="container mx-auto px-4 py-8">
+        <!-- 导航栏 -->
+        <nav class="flex justify-between items-center mb-8">
+            <div class="text-xl font-bold text-gray-800">
+                <i class="fa fa-book mr-2"></i>在线考试系统
+            </div>
+            <div class="flex space-x-4">
+                <span class="text-gray-600"><i class="fa fa-user mr-1"></i>{{ session.username }}</span>
+                <a href="/logout" class="text-red-600 hover:text-red-800 transition-colors">
+                    <i class="fa fa-sign-out mr-1"></i>退出
+                </a>
+            </div>
+        </nav>
+
+        <!-- 考试信息 -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+            <h1 class="text-2xl font-bold text-gray-800 mb-4">{{ test.TestName }}</h1>
+            <div class="flex flex-wrap gap-4 text-gray-600">
+                <span><i class="fa fa-list-ol mr-1"></i>选择题: {{ test_select_len }}题</span>
+                <span><i class="fa fa-code mr-1"></i>编程题: {{ test_content_len }}题</span>
+            </div>
+        </div>
+
+        <!-- 考试内容 -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+            <!-- 选择题部分 -->
+            {% if test_select_len > 0 %}
+            <div class="mb-8">
+                <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                    <span class="bg-blue-500 text-white rounded-full w-6 h-6 flex items-center justify-center mr-2">1</span>
+                    选择题 (共{{ test_select_len }}题)
+                </h2>
+                <div class="space-y-6" id="select-questions">
+                    {% for i in range(test_select_len) %}
+                    <div class="border border-gray-200 rounded-lg p-4 hover:border-blue-300 transition-colors">
+                        <h3 class="font-semibold text-gray-800 mb-3">
+                            {{ i+1 }}. {{ test_select[i].Content }}
+                        </h3>
+                        <div class="ml-4 space-y-2">
+                            <label class="flex items-center">
+                                <input type="radio" name="select_{{ test_select[i].Id }}" value="A" class="form-radio text-blue-500">
+                                <span class="ml-2">A. {{ test_select[i].AnswerA }}</span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="radio" name="select_{{ test_select[i].Id }}" value="B" class="form-radio text-blue-500">
+                                <span class="ml-2">B. {{ test_select[i].AnswerB }}</span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="radio" name="select_{{ test_select[i].Id }}" value="C" class="form-radio text-blue-500">
+                                <span class="ml-2">C. {{ test_select[i].AnswerC }}</span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="radio" name="select_{{ test_select[i].Id }}" value="D" class="form-radio text-blue-500">
+                                <span class="ml-2">D. {{ test_select[i].AnswerD }}</span>
+                            </label>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- 编程题部分 -->
+            {% if test_content_len > 0 %}
+            <div>
+                <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                    <span class="bg-green-500 text-white rounded-full w-6 h-6 flex items-center justify-center mr-2">2</span>
+                    编程题 (共{{ test_content_len }}题)
+                </h2>
+                <div class="space-y-8" id="program-questions">
+                    {% for i in range(test_content_len) %}
+                    <div class="border border-gray-200 rounded-lg p-4 hover:border-green-300 transition-colors">
+                        <h3 class="font-semibold text-gray-800 mb-3">
+                            {{ i+1 }}. {{ test_content[i].Content }}
+                        </h3>
+                        <div class="mb-4">
+                            <label class="block text-gray-700 mb-2">输入示例:</label>
+                            <pre class="bg-gray-100 p-3 rounded text-gray-800 overflow-x-auto">{{ test_content[i].InputExample }}</pre>
+                        </div>
+                        <div class="mb-4">
+                            <label class="block text-gray-700 mb-2">输出示例:</label>
+                            <pre class="bg-gray-100 p-3 rounded text-gray-800 overflow-x-auto">{{ test_content[i].OutputExample }}</pre>
+                        </div>
+                        <div>
+                            <label class="block text-gray-700 mb-2">请在此编写代码:</label>
+                            <textarea 
+                                id="code_{{ test_content[i].Id }}" 
+                                name="code_{{ test_content[i].Id }}" 
+                                rows="10" 
+                                class="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                                placeholder="请使用 Python 3 编写代码..."
+                            ></textarea>
+                        </div>
+                        <div class="mt-3 flex justify-end">
+                            <button 
+                                type="button" 
+                                class="run-code-btn bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-md transition-colors"
+                                data-question-id="{{ test_content[i].Id }}"
+                                data-test-record-id="{{ test_record_id }}"
+                                data-test-answer-id="{{ test_content_record[i] }}"
+                            >
+                                <i class="fa fa-play mr-1"></i>运行代码
+                            </button>
+                        </div>
+                        <div class="mt-3 code-output hidden">
+                            <label class="block text-gray-700 mb-2">运行结果:</label>
+                            <pre id="output_{{ test_content[i].Id }}" class="bg-gray-100 p-3 rounded text-gray-800 h-32 overflow-auto"></pre>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- 提交按钮 -->
+        <div class="flex justify-end">
+            <button 
+                id="submit-test" 
+                class="bg-red-500 hover:bg-red-600 text-white px-6 py-3 rounded-md transition-colors"
+                data-test-record-id="{{ test_record_id }}"
+            >
+                <i class="fa fa-check-circle mr-1"></i>提交试卷
+            </button>
+        </div>
+
+        <!-- 模态框 -->
+        <div id="result-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+            <div class="bg-white rounded-lg p-6 max-w-md w-full">
+                <h2 class="text-xl font-bold text-gray-800 mb-4" id="modal-title">提交确认</h2>
+                <p class="text-gray-600 mb-6" id="modal-message">确认提交试卷吗？提交后将无法修改答案。</p>
+                <div class="flex justify-end space-x-4">
+                    <button id="cancel-submit" class="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-100 transition-colors">
+                        取消
+                    </button>
+                    <button id="confirm-submit" class="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors">
+                        确认提交
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 处理选择题提交
+        document.getElementById('submit-test').addEventListener('click', function() {
+            const testRecordId = this.getAttribute('data-test-record-id');
+            document.getElementById('confirm-submit').setAttribute('data-test-record-id', testRecordId);
+            document.getElementById('result-modal').classList.remove('hidden');
+        });
+
+        // 取消提交
+        document.getElementById('cancel-submit').addEventListener('click', function() {
+            document.getElementById('result-modal').classList.add('hidden');
+        });
+
+        // 确认提交
+        document.getElementById('confirm-submit').addEventListener('click', function() {
+            const testRecordId = this.getAttribute('data-test-record-id');
+            const answers = {};
+
+            // 收集选择题答案
+            const selectInputs = document.querySelectorAll('input[name^="select_"]:checked');
+            selectInputs.forEach(input => {
+                const questionId = input.name.split('_')[1];
+                answers[questionId] = input.value;
+            });
+
+            // 发送选择题答案
+            fetch('/selectanswers', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    test_record_id: testRecordId,
+                    answers: answers
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                // 提交完成，跳转到结果页面
+                window.location.href = `/testover?test_record_id=${testRecordId}`;
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('提交失败，请重试');
+            });
+        });
+
+        // 处理编程题运行
+        document.querySelectorAll('.run-code-btn').forEach(button => {
+            button.addEventListener('click', function() {
+                const questionId = this.getAttribute('data-question-id');
+                const testRecordId = this.getAttribute('data-test-record-id');
+                const testAnswerId = this.getAttribute('data-test-answer-id');
+                const code = document.getElementById(`code_${questionId}`).value;
+                
+                const outputElement = document.getElementById(`output_${questionId}`);
+                const outputContainer = outputElement.parentElement;
+                outputContainer.classList.remove('hidden');
+                outputElement.textContent = '正在运行...';
+
+                fetch('/runcode', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: `testRecordId=${testRecordId}&testAnswerId=${testAnswerId}&testContentId=${questionId}&pycode=${encodeURIComponent(code)}`
+                })
+                .then(response => response.json())
+                .then(data => {
+                    const result = JSON.parse(data)[1].msg;
+                    outputElement.textContent = result;
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    outputElement.textContent = '运行出错: ' + error.message;
+                });
+            });
+        });
+    </script>
+</body>
+</html>

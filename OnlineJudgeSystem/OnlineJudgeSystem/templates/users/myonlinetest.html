@@ -1,0 +1,161 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<!-- 顶部间距 -->
+<div style="margin-top: 50px;"></div>
+
+<div class="container custom-test-container">
+    <h2 class="page-title">试卷列表</h2>
+    <!-- 卡片式容器 -->
+    <div class="card">
+        <div class="card-header">
+            <div class="muted pull-left">试卷列表</div>
+        </div>
+        <div class="card-content">
+            <div class="table-responsive">
+                <table class="table table-striped table-bordered dataTable" id="example" aria-describedby="example_info">
+                    <thead class="table-header">
+                        <tr role="row">
+                            <th class="sorting_asc" role="columnheader" style="width: 80px;">编号</th>
+                            <th class="sorting" role="columnheader" style="width: 220px;">试卷名称</th>
+                            <th class="sorting" role="columnheader" style="width: 120px;">编程题数</th>
+                            <th class="sorting" role="columnheader" style="width: 120px;">选择题数</th>
+                            <th class="sorting" role="columnheader" style="width: 120px;">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody role="alert" aria-live="polite" aria-relevant="all">
+                        {% for item in datas %}
+                        <tr class="table-row">
+                            <td class="sorting_1">{{item.Id}}</td>
+                            <td>{{item.TestName}}</td>
+                            <td>{{item.ProgrameText}}</td>
+                            <td>{{item.SelectText}}</td>
+                            <td>
+                                 <a class="btn btn-primary btn-sm" href="/myonlineanswer?id={{item.Id}}">开始考试</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            {% if seacher != "123" %}
+            <div class="pagination-container">
+                <div class="data-info">
+                    共<em>{{sum}}</em>条数据 | 每页显示<em>6</em>条 | 共<em>{{sum_page}}</em>页
+                </div>
+                <div class="data-paginate">
+                    <ul class="pagination">
+                        <li class="page-item"><a class="page-link" href="/myonlinetest?typePage=pre&currentPage={{pre}}">← 上一页</a></li>
+                        <li class="page-item"><a class="page-link" href="/myonlinetest?typePage=next&currentPage={{next}}">下一页 →</a></li>
+                    </ul>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- 内嵌样式（可迁移到外部CSS文件） -->
+<style>
+    /* 页面基础样式 */
+    body {
+        background: #f8f9fa;
+        font-family: "微软雅黑", sans-serif;
+    }
+
+    /* 容器优化 */
+    .custom-test-container {
+        margin: 30px auto;
+        max-width: 1200px;
+    }
+
+    /* 标题样式 */
+    .page-title {
+        font-size: 24px;
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 20px;
+        border-left: 5px solid #007bff;
+        padding-left: 10px;
+    }
+
+    /* 卡片样式 */
+    .card {
+        background: #fff;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        overflow: hidden;
+    }
+
+    .card-header {
+        background: #f1f3f5;
+        padding: 15px 20px;
+        border-bottom: 1px solid #eee;
+    }
+
+    .card-content {
+        padding: 20px;
+    }
+
+    /* 表格响应式 */
+    .table-responsive {
+        overflow-x: auto;
+    }
+
+    .table {
+        min-width: 700px;
+    }
+
+    .table-header {
+        background: #fff;    /* 改为白色背景 */
+        color: #222;         /* 字体颜色改为深色 */
+        border-bottom: 1px solid #ddd;  /* 可选：下边框分隔 */
+    }
+
+        .table-header th {
+            border: none;
+            padding: 12px;
+            text-align: center;
+        }
+
+    .table-row td {
+        vertical-align: middle;
+        text-align: center;
+        padding: 12px;
+    }
+
+    /* 按钮优化 */
+    .btn-sm {
+        padding: 6px 12px;
+        font-size: 14px;
+    }
+
+    /* 分页区域 */
+    .pagination-container {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 20px;
+        padding: 10px 20px;
+        background: #f8f9fa;
+        border-top: 1px solid #eee;
+    }
+
+    .data-info {
+        color: #666;
+    }
+
+    .data-paginate .pagination {
+        margin: 0;
+    }
+
+    .page-link {
+        color: #007bff;
+    }
+
+        .page-link:hover {
+            color: #0056b3;
+        }
+</style>
+{% endblock %}

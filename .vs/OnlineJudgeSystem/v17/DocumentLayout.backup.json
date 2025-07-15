@@ -1,0 +1,54 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "E:\\!!!!!!!!!Linux\\Python\u5728\u7EBF\u5224\u9898\u7CFB\u7EDF\u65B0\u7248\u672C\\OnlineJudgeSystem\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{84B31A47-6888-4ED5-B94B-559E32C5AF9D}|OnlineJudgeSystem\\OnlineJudgeSystem.pyproj|E:\\!!!!!!!!!Linux\\Python\u5728\u7EBF\u5224\u9898\u7CFB\u7EDF\u65B0\u7248\u672C\\OnlineJudgeSystem\\OnlineJudgeSystem\\OnlineJudgeSystem\\views.py||{8B382828-6202-11D1-8870-0000F87579D2}",
+      "RelativeMoniker": "D:0:0:{84B31A47-6888-4ED5-B94B-559E32C5AF9D}|OnlineJudgeSystem\\OnlineJudgeSystem.pyproj|solutionrelative:OnlineJudgeSystem\\OnlineJudgeSystem\\views.py||{8B382828-6202-11D1-8870-0000F87579D2}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{84B31A47-6888-4ED5-B94B-559E32C5AF9D}|OnlineJudgeSystem\\OnlineJudgeSystem.pyproj|E:\\!!!!!!!!!Linux\\Python\u5728\u7EBF\u5224\u9898\u7CFB\u7EDF\u65B0\u7248\u672C\\OnlineJudgeSystem\\OnlineJudgeSystem\\OnlineJudgeSystem\\usersviews.py||{8B382828-6202-11D1-8870-0000F87579D2}",
+      "RelativeMoniker": "D:0:0:{84B31A47-6888-4ED5-B94B-559E32C5AF9D}|OnlineJudgeSystem\\OnlineJudgeSystem.pyproj|solutionrelative:OnlineJudgeSystem\\OnlineJudgeSystem\\usersviews.py||{8B382828-6202-11D1-8870-0000F87579D2}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 0,
+          "Children": [
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "views.py",
+              "DocumentMoniker": "E:\\!!!!!!!!!Linux\\Python\u5728\u7EBF\u5224\u9898\u7CFB\u7EDF\u65B0\u7248\u672C\\OnlineJudgeSystem\\OnlineJudgeSystem\\OnlineJudgeSystem\\views.py",
+              "RelativeDocumentMoniker": "OnlineJudgeSystem\\OnlineJudgeSystem\\views.py",
+              "ToolTip": "E:\\!!!!!!!!!Linux\\Python\u5728\u7EBF\u5224\u9898\u7CFB\u7EDF\u65B0\u7248\u672C\\OnlineJudgeSystem\\OnlineJudgeSystem\\OnlineJudgeSystem\\views.py",
+              "RelativeToolTip": "OnlineJudgeSystem\\OnlineJudgeSystem\\views.py",
+              "ViewState": "AgIAAA8AAAAAAAAAAAAUwBsAAAAdAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.002457|",
+              "WhenOpened": "2025-03-23T11:40:06.223Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "usersviews.py",
+              "DocumentMoniker": "E:\\!!!!!!!!!Linux\\Python\u5728\u7EBF\u5224\u9898\u7CFB\u7EDF\u65B0\u7248\u672C\\OnlineJudgeSystem\\OnlineJudgeSystem\\OnlineJudgeSystem\\usersviews.py",
+              "RelativeDocumentMoniker": "OnlineJudgeSystem\\OnlineJudgeSystem\\usersviews.py",
+              "ToolTip": "E:\\!!!!!!!!!Linux\\Python\u5728\u7EBF\u5224\u9898\u7CFB\u7EDF\u65B0\u7248\u672C\\OnlineJudgeSystem\\OnlineJudgeSystem\\OnlineJudgeSystem\\usersviews.py",
+              "RelativeToolTip": "OnlineJudgeSystem\\OnlineJudgeSystem\\usersviews.py",
+              "ViewState": "AgIAAKkBAAAAAAAAAAAiwMkBAAAPAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.002457|",
+              "WhenOpened": "2025-03-23T05:22:06.868Z",
+              "EditorCaption": ""
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

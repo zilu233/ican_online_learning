@@ -1,0 +1,161 @@
+﻿{% extends "layout.html" %}
+
+{% block content %}
+
+
+
+
+<div style="margin-top:100px">
+
+</div>
+
+
+
+<script src="../static/content/echarts/echarts.min.js"></script>
+
+<div class="row">
+    <div class="block-content collapse in">
+        <!-- block -->
+        <div class="block">
+            <div class="navbar navbar-inner block-header">
+                <div class="muted pull-left">python程序设计在线学习系统统计</div>
+            </div>
+            <div class="block-content collapse in">
+                <div class="span12 chart">
+
+                    <!-- 为 ECharts 准备一个定义了宽高的 DOM -->
+                    <div id="main" style="width: 1680px;height:480px;"></div>
+                    <script type="text/javascript">
+                        // 基于准备好的dom，初始化echarts实例
+                        var myChart = echarts.init(document.getElementById('main'));
+
+                        // 指定图表的配置项和数据
+                        var option = {
+                            title: {
+                                text: 'python程序设计在线学习系统统计'
+                            },
+                            tooltip: {
+                                formatter: function(params) {
+                                    if(params.name === '正确率' || params.name === '错误率') {
+                                        return params.name + ': ' + params.value + '%';
+                                    }
+                                    return params.name + ': ' + params.value;
+                                }
+                            },
+                            legend: {
+                                data: ['网站统计信息']
+                            },
+                            xAxis: {
+                                data: ['学生', '题库', '答题', '教师', '正确率', '错误率']
+                            },
+                            yAxis: {},
+                            series: [{
+                                name: '统计个数',
+                                type: 'bar',
+                                data: {{ datas_count }}
+                            }]
+                        };
+
+                        // 使用刚指定的配置项和数据显示图表。
+                        myChart.setOption(option);
+                    </script>
+                </div>
+
+            </div>
+        </div>
+        <!-- /block -->
+    </div>
+
+
+</div>
+
+
+{% if userType == 'teacher' %}
+<!-- 管理员获取所有列表信息，学生只能获取自己的统计信息和自己做过的题目信息 -->
+<div class="row">
+    <div class="block-content collapse in">
+        <div class="span12">
+            <div id="example_wrapper" class="dataTables_wrapper form-inline" role="grid">
+                <h3 style="margin-bottom:15px; margin-top:30px;">班级学生信息</h3>
+                <table cellpadding="0" cellspacing="0" border="0" class="table table-striped table-bordered dataTable" id="example" aria-describedby="example_info">
+                    <thead>
+                        <tr role="row">
+                            <th class="sorting_asc" role="columnheader" tabindex="0" aria-controls="example" rowspan="1" colspan="1" aria-sort="ascending" aria-label="Rendering engine: activate to sort column descending" style="width: 146px;">编号</th>
+                            <th class="sorting" role="columnheader" tabindex="0" aria-controls="example" rowspan="1" colspan="1" aria-label="Browser: activate to sort column ascending" style="width: 215px;">学生用户名</th>
+                            <!--<th class="sorting" role="columnheader" tabindex="0" aria-controls="example" rowspan="1" colspan="1" aria-label="Platform(s): activate to sort column ascending" style="width: 215px;">用户密码</th>  -->
+                            <th class="sorting" role="columnheader" tabindex="0" aria-controls="example" rowspan="1" colspan="1" style="width: 215px;">
+                                学生班级
+                            </th>
+                            <th class="sorting" role="columnheader" tabindex="0" aria-controls="example" rowspan="1" colspan="1" aria-label="Engine version: activate to sort column ascending" style="width: 250px;">学生姓名</th>
+                            <!--<th class="sorting" role="columnheader" tabindex="0" aria-controls="example" rowspan="1" colspan="1" aria-label="CSS grade: activate to sort column ascending" style="width: 215px;">身份证号</th>-->
+                            <th class="sorting" role="columnheader" tabindex="0" aria-controls="example" rowspan="1" colspan="1" aria-label="CSS grade: activate to sort column ascending" style="width: 215px;">手机号码</th>
+                            <th class="sorting" role="columnheader" tabindex="0" aria-controls="example" rowspan="1" colspan="1" aria-label="CSS grade: activate to sort column ascending" style="width: 300px;">家庭住址</th>
+                        </tr>
+                    </thead>
+
+                    <tbody role="alert" aria-live="polite" aria-relevant="all">
+                        {% for item in datas_student %}
+                        <tr class="gradeA odd">
+                            <td class="  sorting_1">{{item.Id}}</td>
+                            <td class=" ">{{item.UserName}}</td>
+                            <!--<td class=" ">{{item.PWD}}</td> -->
+                            <td class="center ">{{ item.Classes }}</td>
+                            <td class="center ">{{item.Name}}</td>
+                            <!--<td class="center ">{{item.Card}}</td>-->
+                            <td class="center ">{{item.Phone}}</td>
+                            <td class="center ">{{item.Address}}</td>
+                        </tr>
+                        {% endfor %}
+
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+
+
+<div class="row">
+    <div class="block-content collapse in">
+        <div class="span12">
+            <div id="example_wrapper" class="dataTables_wrapper form-inline" role="grid">
+
+                <table cellpadding="0" cellspacing="0" border="0" class="table table-striped table-bordered dataTable" id="example" aria-describedby="example_info">
+                    <thead>
+                        <tr role="row">
+                            <th class="sorting_asc" role="columnheader" tabindex="0" aria-controls="example" rowspan="1" colspan="1" aria-sort="ascending" aria-label="Rendering engine: activate to sort column descending" style="width: 146px;">编号</th>
+                            <th class="sorting" role="columnheader" tabindex="0" aria-controls="example" rowspan="1" colspan="1" aria-label="Browser: activate to sort column ascending" style="width: 400px;">题库内容</th>
+                            <th class="sorting" role="columnheader" tabindex="0" aria-controls="example" rowspan="1" colspan="1" aria-label="Platform(s): activate to sort column ascending" style="width: 200px;">题库结果</th>
+                            <th class="sorting" role="columnheader" tabindex="0" aria-controls="example" rowspan="1" colspan="1" aria-label="Engine version: activate to sort column ascending" style="width: 250px;">题库分数</th>
+                        </tr>
+                    </thead>
+
+                    <tbody role="alert" aria-live="polite" aria-relevant="all">
+                        {% for item in datas_test %}
+                        <tr class="gradeA odd">
+                            <td class="  sorting_1">{{item.Id}}</td>
+                            <td class=" ">{{item.Content}}</td>
+                            <td class="center ">{{item.Result}}</td>
+                            <td class="center ">{{item.Grade}}</td>
+                        </tr>
+
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+
+{% endif %}
+
+
+
+
+
+{% endblock %}

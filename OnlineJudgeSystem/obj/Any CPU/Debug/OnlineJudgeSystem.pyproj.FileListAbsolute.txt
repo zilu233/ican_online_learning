@@ -1,0 +1,2 @@
+C:\Users\Administrator\Desktop\Python在线判题系统\OnlineJudgeSystem\OnlineJudgeSystem\obj\Any CPU\Debug\OnlineJudgeSystem.pyproj.CoreCompileInputs.cache
+E:\!!!!!!!!!Linux\Python在线判题系统新版本\OnlineJudgeSystem\OnlineJudgeSystem\obj\Any CPU\Debug\OnlineJudgeSystem.pyproj.CoreCompileInputs.cache

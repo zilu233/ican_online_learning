@@ -1,0 +1,350 @@
+{% extends "layout.html" %}
+
+{% block content %}
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>编辑试卷</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#165DFF',
+                        secondary: '#36D399',
+                        danger: '#F87272',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .form-control {
+                @apply block w-full px-4 py-2 mt-2 text-gray-700 bg-white border border-gray-300 rounded-md focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none transition;
+            }
+            .form-label {
+                @apply block text-sm font-medium text-gray-700;
+            }
+            .btn {
+                @apply px-6 py-2.5 text-white font-medium rounded-lg transition-all duration-300;
+            }
+            .btn-primary {
+                @apply bg-primary hover:bg-primary/90 focus:ring-4 focus:ring-primary/30;
+            }
+            .btn-danger {
+                @apply bg-danger hover:bg-danger/90 focus:ring-4 focus:ring-danger/30;
+            }
+            .question-group {
+                @apply p-4 mb-4 bg-white rounded-lg shadow-sm border border-gray-200 hover:border-primary/50 transition-all;
+            }
+            .selected-count {
+                @apply text-sm text-gray-500 mt-1;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <div class="container mx-auto px-4 py-8 max-w-4xl">
+        <!-- 导航栏 -->
+        <nav class="flex justify-between items-center mb-8">
+            <div class="text-xl font-bold text-gray-800">
+                <i class="fa fa-book mr-2"></i>在线考试系统
+            </div>
+            <div class="flex space-x-4">
+                <span class="text-gray-600"><i class="fa fa-user mr-1"></i>{{ session.username }}</span>
+                <a href="/testmanagement" class="text-red-600 hover:text-red-800 transition-colors">
+                   <i class="fa fa-sign-out mr-1"></i>退出
+                </a>
+            </div>
+        </nav>
+
+        <!-- 主内容区 -->
+        <div class="bg-white rounded-xl shadow-md p-6 mb-8">
+            <h1 class="text-2xl font-bold text-gray-800 mb-6 flex items-center">
+                <i class="fa fa-edit text-primary mr-2"></i>编辑试卷
+            </h1>
+            
+            <form id="form" class="space-y-6" action="/testmanagementedit" method="post">
+                <!-- 添加隐藏的ID字段 -->
+                <input type="hidden" name="id" value="{{ data.Id }}">
+                
+                <!-- 试卷基本信息 -->
+                <div class="question-group">
+                    <h3 class="font-semibold text-lg text-gray-800 mb-4 flex items-center">
+                        <span class="bg-primary text-white rounded-full w-6 h-6 flex items-center justify-center mr-2">1</span>
+                        试卷基本信息
+                    </h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label for="testname" class="form-label">试卷名称</label>
+                            <input type="text" id="testname" name="testname" required
+                                class="form-control" placeholder="请输入试卷名称" value="{{data.TestName}}">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 选择题设置 -->
+                <div class="question-group">
+                    <h3 class="font-semibold text-lg text-gray-800 mb-4 flex items-center">
+                        <span class="bg-secondary text-white rounded-full w-6 h-6 flex items-center justify-center mr-2">2</span>
+                        选择题设置
+                    </h3>
+                    <div class="mb-4">
+                        <label for="selecttext" class="form-label">选择题数量</label>
+                        <input type="number" id="selecttext" name="selecttext" min="0" max="20" required
+                            class="form-control" placeholder="请输入选择题数量" value="{{data.SelectText}}">
+                        <div id="select-count" class="selected-count">已选择: 0/0</div>
+                    </div>
+                    
+                    <div id="select-questions-container" class="mt-4 space-y-3 max-h-[300px] overflow-y-auto">
+                        {% if all_select_questions %}
+                            {% for question in all_select_questions %}
+                            <div class="p-3 border border-gray-200 rounded-lg hover:border-secondary/50 transition-colors">
+                                <label class="flex items-start">
+                                    <input type="checkbox" name="select_question_ids" value="{{ question.Id }}"
+                                        class="mt-1 text-secondary focus:ring-secondary h-4 w-4 select-question"
+                                        {% if question.Id in selected_select_question_ids %}checked{% endif %}>
+                                    <span class="ml-2 text-gray-800">
+                                        <span class="font-medium">{{ loop.index }}.</span> {{ question.Content }}
+                                    </span>
+                                </label>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="p-4 text-gray-500 text-center">
+                                <i class="fa fa-info-circle mr-1"></i>暂无选择题，请先添加选择题
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- 编程题设置 -->
+                <div class="question-group">
+                    <h3 class="font-semibold text-lg text-gray-800 mb-4 flex items-center">
+                        <span class="bg-blue-500 text-white rounded-full w-6 h-6 flex items-center justify-center mr-2">3</span>
+                        编程题设置
+                    </h3>
+                    <div class="mb-4">
+                        <label for="programetext" class="form-label">编程题数量</label>
+                        <input type="number" id="programetext" name="programetext" min="0" max="10" required
+                            class="form-control" placeholder="请输入编程题数量" value="{{data.ProgrameText}}">
+                        <div id="program-count" class="selected-count">已选择: 0/0</div>
+                    </div>
+                    
+                    <div id="program-questions-container" class="mt-4 space-y-3 max-h-[300px] overflow-y-auto">
+                        {% if all_content_questions %}
+                            {% for question in all_content_questions %}
+                            <div class="p-3 border border-gray-200 rounded-lg hover:border-blue-300 transition-colors">
+                                <label class="flex items-start">
+                                    <input type="checkbox" name="content_question_ids" value="{{ question.Id }}"
+                                        class="mt-1 text-blue-500 focus:ring-blue-300 h-4 w-4 program-question"
+                                        {% if question.Id in selected_content_question_ids %}checked{% endif %}>
+                                    <span class="ml-2 text-gray-800">
+                                        <span class="font-medium">{{ loop.index }}.</span> {{ question.Content }}
+                                    </span>
+                                </label>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="p-4 text-gray-500 text-center">
+                                <i class="fa fa-info-circle mr-1"></i>暂无编程题，请先添加编程题
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- 提交按钮 -->
+                <div class="flex justify-end space-x-4">
+                    <button type="button" onclick="resetForm()" class="btn btn-danger">
+                        <i class="fa fa-refresh mr-1"></i>重置
+                    </button>
+                    <button onclick="return checkIsOk()" type="button" class="btn btn-primary">
+                        <i class="fa fa-save mr-1"></i>保存修改
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // 页面加载完成后执行
+        document.addEventListener('DOMContentLoaded', function() {
+            // 初始化
+            initializeCheckboxes();
+            updateSelectedCount();
+            
+            // 监听选择题数量变化
+            document.getElementById('selecttext').addEventListener('change', function() {
+                limitSelection('select-question', this.value);
+                limitCheckboxes('select-question', this.value);
+                updateSelectedCount();
+            });
+            
+            // 监听编程题数量变化
+            document.getElementById('programetext').addEventListener('change', function() {
+                limitSelection('program-question', this.value);
+                limitCheckboxes('program-question', this.value);
+                updateSelectedCount();
+            });
+            
+            // 监听选择题复选框变化
+            document.querySelectorAll('.select-question').forEach(function(checkbox) {
+                checkbox.addEventListener('change', function() {
+                    limitCheckboxes('select-question', document.getElementById('selecttext').value);
+                    updateSelectedCount();
+                });
+            });
+            
+            // 监听编程题复选框变化
+            document.querySelectorAll('.program-question').forEach(function(checkbox) {
+                checkbox.addEventListener('change', function() {
+                    limitCheckboxes('program-question', document.getElementById('programetext').value);
+                    updateSelectedCount();
+                });
+            });
+        });
+        
+        // 初始化复选框状态
+        function initializeCheckboxes() {
+            // 处理选择题
+            limitSelection('select-question', document.getElementById('selecttext').value);
+            limitCheckboxes('select-question', document.getElementById('selecttext').value);
+            
+            // 处理编程题
+            limitSelection('program-question', document.getElementById('programetext').value);
+            limitCheckboxes('program-question', document.getElementById('programetext').value);
+        }
+        
+        // 限制选择数量，当选择过多时取消选中
+        function limitSelection(className, max) {
+            const checkboxes = document.querySelectorAll('.' + className);
+            const maxCount = parseInt(max) || 0;
+            const checkedCount = getCheckedCount(className);
+            
+            // 如果已选择数量超过限制，取消选中多余的选项
+            if (checkedCount > maxCount) {
+                let uncheckedCount = checkedCount - maxCount;
+                checkboxes.forEach(function(checkbox) {
+                    if (uncheckedCount <= 0) return;
+                    
+                    if (checkbox.checked) {
+                        checkbox.checked = false;
+                        uncheckedCount--;
+                    }
+                });
+            }
+        }
+        
+        // 限制复选框选择数量
+        function limitCheckboxes(className, max) {
+            const checkboxes = document.querySelectorAll('.' + className);
+            const maxCount = parseInt(max) || 0;
+            const checkedCount = getCheckedCount(className);
+            
+            checkboxes.forEach(function(checkbox) {
+                // 如果已选择的数量达到最大值，且当前复选框未选中，则禁用
+                checkbox.disabled = (checkedCount >= maxCount && !checkbox.checked);
+            });
+        }
+        
+        // 获取已选择的复选框数量
+        function getCheckedCount(className) {
+            return document.querySelectorAll('.' + className + ':checked').length;
+        }
+        
+        // 更新已选题目数量显示
+        function updateSelectedCount() {
+            const selectCount = parseInt(document.getElementById('selecttext').value) || 0;
+            const programCount = parseInt(document.getElementById('programetext').value) || 0;
+            const selectedSelect = getCheckedCount('select-question');
+            const selectedProgram = getCheckedCount('program-question');
+            
+            document.getElementById('select-count').textContent = `已选择: ${selectedSelect}/${selectCount}`;
+            document.getElementById('program-count').textContent = `已选择: ${selectedProgram}/${programCount}`;
+            
+            // 检查是否达到最大选择数量
+            if (selectedSelect > selectCount) {
+                document.getElementById('select-count').classList.add('text-danger');
+            } else {
+                document.getElementById('select-count').classList.remove('text-danger');
+            }
+            
+            if (selectedProgram > programCount) {
+                document.getElementById('program-count').classList.add('text-danger');
+            } else {
+                document.getElementById('program-count').classList.remove('text-danger');
+            }
+        }
+        
+        // 表单验证函数
+        function checkIsOk() {
+            const selectCount = parseInt(document.getElementById('selecttext').value) || 0;
+            const programCount = parseInt(document.getElementById('programetext').value) || 0;
+            const selectedSelect = getCheckedCount('select-question');
+            const selectedProgram = getCheckedCount('program-question');
+            
+            // 验证选择题数量
+            if (selectedSelect !== selectCount) {
+                showError(`请选择 ${selectCount} 道选择题（当前已选 ${selectedSelect} 道）`);
+                return false;
+            }
+            
+            // 验证编程题数量
+            if (selectedProgram !== programCount) {
+                showError(`请选择 ${programCount} 道编程题（当前已选 ${selectedProgram} 道）`);
+                return false;
+            }
+            
+            // 验证试卷名称
+            const testName = document.getElementById('testname').value.trim();
+            if (!testName) {
+                showError("请输入试卷名称");
+                return false;
+            }
+            
+            // 确认提交
+            if (confirm("确认保存此试卷的修改吗？")) {
+                // 提交表单
+                document.getElementById('form').submit();
+                return true;
+            }
+            return false;
+        }
+        
+        // 显示错误提示
+        function showError(message) {
+            alert(message);
+        }
+        
+        // 重置表单
+        function resetForm() {
+            if (confirm("确认重置表单吗？已填写的内容将被清除。")) {
+                document.getElementById('form').reset();
+                
+                // 重置所有复选框状态
+                document.querySelectorAll('.select-question, .program-question').forEach(function(checkbox) {
+                    checkbox.disabled = false;
+                    checkbox.checked = false;
+                });
+                
+                // 重新初始化并更新计数
+                initializeCheckboxes();
+                updateSelectedCount();
+            }
+        }
+    </script>
+</body>
+</html>
+
+{% endblock %}
