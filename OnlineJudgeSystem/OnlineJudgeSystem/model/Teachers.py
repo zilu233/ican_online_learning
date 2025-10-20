@@ -13,6 +13,13 @@ class Teachers(object):
         self.Card=""
         self.Phone=""
         self.Address=""
+        # 新增字段 - 多学校支持
+        self.SchoolId=0
+        self.ApprovalStatus=0  # 0-待审核, 1-已通过, 2-已拒绝
+        self.ApprovalTime=""
+        self.ApprovalAdminId=0
+        self.RejectionReason=""
+        self.SchoolName=""  # 关联学校名称
 
     def to_json(self):
         return json.dumps(self, default=lambda o: o.__dict__, 
@@ -23,7 +30,7 @@ class TeachersServer(object):
     """description of class"""
     def select_sql_login(self,students):
         mysql = MySqlHelper()
-        reuslt =  mysql.query("select * from teacher where User_Name='"+students.UserName+"' and PWD='"+students.PWD+"'", "")
+        reuslt =  mysql.query("select t.*, s.school_name from teacher t LEFT JOIN schools s ON t.school_id=s.id where t.User_Name='"+students.UserName+"' and t.PWD='"+students.PWD+"' and t.approval_status=1", "")
         students = Teachers()
         if reuslt > 0:
             for row in mysql.cursor.fetchall():
@@ -35,6 +42,13 @@ class TeachersServer(object):
                 students.Card = row[5]
                 students.Phone = row[6]
                 students.Address = row[7]
+                # 新增字段
+                students.SchoolId = row[8] if row[8] else 0
+                students.ApprovalStatus = row[9] if row[9] else 0
+                students.ApprovalTime = str(row[10]) if row[10] else ""
+                students.ApprovalAdminId = row[11] if row[11] else 0
+                students.RejectionReason = row[12] if row[12] else ""
+                students.SchoolName = row[15] if row[15] else ""
             mysql.end()
         else:
             students = None
@@ -162,10 +176,12 @@ class TeachersServer(object):
 
     def insert_sql(self,students):
         mysql = MySqlHelper()
-
-        mysql.query("insert into teacher (`User_Name`,`PWD`,`Classes`,`Name`,`Card`,`Phone`,`Address`) values(\""+\
-                    students.UserName+"\", \""+students.PWD+"\", \""+students.Classes+"\", \""+students.Name+"\",\""+students.Card+"\",\""+students.Phone+"\",\""+students.Address+"\");", "")
-        #Must user commit in crud
+        # 构建插入语句（注册即审核通过）
+        school_id_str = str(students.SchoolId) if students.SchoolId else "NULL"
+        sql = f"""insert into teacher (`User_Name`,`PWD`,`Classes`,`Name`,`Card`,`Phone`,`Address`,`school_id`,`approval_status`) 
+                  values("{students.UserName}", "{students.PWD}", "{students.Classes}", "{students.Name}","{students.Card}","{students.Phone}","{students.Address}",
+                  {school_id_str}, 1);"""
+        mysql.query(sql, "")
         mysql.connent.commit()
         mysql.end()  
 
@@ -187,4 +203,91 @@ class TeachersServer(object):
         #Must user commit in crud
         mysql.connent.commit()
         mysql.end() 
+
+
+    # ============ 新增方法：教师审核和多学校支持 ============
+    
+    def select_sql_pending_approval(self, school_id=None):
+        """查询待审核教师列表"""
+        mysql = MySqlHelper()
+        sql = """select t.*, s.school_name from teacher t 
+                 LEFT JOIN schools s ON t.school_id=s.id 
+                 where t.approval_status=0"""
+        if school_id:
+            sql += f" AND t.school_id={school_id}"
+        sql += " ORDER BY t.created_at DESC"
+        
+        reuslt = mysql.query(sql, "")
+        data = []
+        if reuslt > 0:
+            for row in mysql.cursor.fetchall():
+                teacher = Teachers()
+                teacher.Id = row[0]
+                teacher.UserName = row[1]
+                teacher.PWD = row[2]
+                teacher.Classes = row[3]
+                teacher.Name = row[4]
+                teacher.Card = row[5]
+                teacher.Phone = row[6]
+                teacher.Address = row[7]
+                teacher.SchoolId = row[8] if row[8] else 0
+                teacher.ApprovalStatus = row[9] if row[9] else 0
+                teacher.ApprovalTime = str(row[10]) if row[10] else ""
+                teacher.ApprovalAdminId = row[11] if row[11] else 0
+                teacher.RejectionReason = row[12] if row[12] else ""
+                teacher.SchoolName = row[15] if row[15] else ""
+                data.append(teacher)
+            mysql.end()
+        return data
+    
+    def approve_teacher(self, teacher_id, admin_id, status, reason=""):
+        """
+        审核教师
+        :param teacher_id: 教师ID
+        :param admin_id: 管理员ID
+        :param status: 审核状态 (1-通过, 2-拒绝)
+        :param reason: 拒绝原因（status=2时必填）
+        """
+        mysql = MySqlHelper()
+        sql = f"""update teacher set 
+                  approval_status={status}, 
+                  approval_time=NOW(), 
+                  approval_admin_id={admin_id}, 
+                  rejection_reason='{reason}' 
+                  where Id={teacher_id};"""
+        mysql.query(sql, "")
+        mysql.connent.commit()
+        mysql.end()
+    
+    def select_sql_by_school(self, school_id, approval_status=1):
+        """根据学校查询教师列表（默认只查已审核通过的）"""
+        mysql = MySqlHelper()
+        sql = f"""select t.*, s.school_name from teacher t 
+                  LEFT JOIN schools s ON t.school_id=s.id 
+                  where t.school_id={school_id} AND t.approval_status={approval_status}
+                  ORDER BY t.Name"""
+        
+        reuslt = mysql.query(sql, "")
+        data = []
+        if reuslt > 0:
+            for row in mysql.cursor.fetchall():
+                teacher = Teachers()
+                teacher.Id = row[0]
+                teacher.UserName = row[1]
+                teacher.PWD = row[2]
+                teacher.Classes = row[3]
+                teacher.Name = row[4]
+                teacher.Card = row[5]
+                teacher.Phone = row[6]
+                teacher.Address = row[7]
+                teacher.SchoolId = row[8] if row[8] else 0
+                teacher.ApprovalStatus = row[9] if row[9] else 0
+                teacher.ApprovalTime = str(row[10]) if row[10] else ""
+                teacher.ApprovalAdminId = row[11] if row[11] else 0
+                teacher.RejectionReason = row[12] if row[12] else ""
+                teacher.SchoolName = row[15] if row[15] else ""
+                data.append(teacher)
+            mysql.end()
+        return data
+
 

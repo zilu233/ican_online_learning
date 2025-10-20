@@ -7,6 +7,7 @@ from flask import render_template, jsonify, request, session, redirect
 from werkzeug.exceptions import RequestURITooLarge
 from OnlineJudgeSystem import app
 from OnlineJudgeSystem.model.TestContent import TestContentServer, TestContent
+from OnlineJudgeSystem.common.CodeExecutor import CodeExecutor
 import json
 import random
 import math 
@@ -218,7 +219,9 @@ def mytestcontentrecordmanagement():
         item.UserName = temps.UserName
         item.Name = temps.Name
         item.Phone = temps.Phone
-        item.Address = temps.Address
+        # 展示班级，不再展示住址
+        item.ClassName = getattr(temps, 'ClassName', '')
+        item.Classes = getattr(temps, 'Classes', '')
 
     return render_template(
         'users/mytestcontentrecordmanagement.html',
@@ -324,6 +327,7 @@ def runcode():
     获取用户提交的py代码和id获取题库，
     把提交的py代码写入到一个文本中，运行它获取结果。
     最后进行对比，并更新数据库中
+    增强版：提供详细的错误提示信息
     '''
     testRecordId = request.form.get("testRecordId")
     testAnswerId = request.form.get("testAnswerId")
@@ -333,62 +337,25 @@ def runcode():
     testContentServer = TestContentServer()
     testContent = testContentServer.select_sql_by_id(testContentId)
 
-    # 从textrea中获取py代码
-    # 写入到文件中
-    current_path = os.getcwd()
-    upload_dir = os.path.join(current_path, "OnlineJudgeSystem", "upload")
-    if not os.path.exists(upload_dir):
-        os.makedirs(upload_dir)
-    file_upload_path = os.path.join(upload_dir, str(uuid.uuid1()) + ".py")
-    with open(file_upload_path, 'w', encoding='utf-8') as f1:
-        f1.write(pycode)
-        # 调用管道执行py结果
-    proc = subprocess.Popen("python " + file_upload_path, shell=True, stdout=subprocess.PIPE)
-    script_response = proc.stdout.read().decode()
-    # 对比结果如果一致显示“恭喜你答对了”，否则“你输入的python代码错误，答题失败”，并在前端红色显示
-    msg = ""
-    code = 0
+    # 使用CodeExecutor执行代码
+    executor = CodeExecutor(timeout=5)
+    result = executor.execute_code(pycode, testContent.Result)
+    
+    # 更新数据库中的做题信息
     testRecordAnswerServer = TestRecordAnswerServer()
-
-    if script_response != '':
-        if testContent.Result in script_response:
-            msg = "恭喜你答对了"
-            code = 1
-            # 把用户提交的做题信息更新做题信息。
-            testRecordAnswer = TestRecordAnswer()
-            testRecordAnswer.Id = testAnswerId
-            testRecordAnswer.AnswerContent = pycode
-            testRecordAnswer.Grade = testContent.Grade
-            testRecordAnswerServer.update_sql(testRecordAnswer)
-        else:
-            msg = "你输入的python代码错误，答题失败"
-            code = 0
-            # 把用户提交的做题信息更新做题信息。
-            testRecordAnswer = TestRecordAnswer()
-            testRecordAnswer.Id = testAnswerId
-            testRecordAnswer.AnswerContent = pycode
-            testRecordAnswer.Grade = 0;
-            testRecordAnswerServer.update_sql(testRecordAnswer)
+    testRecordAnswer = TestRecordAnswer()
+    testRecordAnswer.Id = testAnswerId
+    testRecordAnswer.AnswerContent = pycode
+    
+    if result["success"]:
+        testRecordAnswer.Grade = testContent.Grade
     else:
-        msg = "你输入的python代码错误，答题失败"
-        code = 0
-        # 把用户提交的做题信息更新做题信息。
-        testRecordAnswer = TestRecordAnswer()
-        testRecordAnswer.Id = testAnswerId
-        testRecordAnswer.AnswerContent = pycode
-        testRecordAnswer.Grade = 0;
-        testRecordAnswerServer.update_sql(testRecordAnswer)
-
-    jsons = "["
-    jsons += "{"
-    jsons += "\"code\":\"" + str(code) + "\""
-    jsons += "},"
-    jsons += "{"
-    jsons += "\"msg\":\"" + str(msg) + "\""
-    jsons += "}"
-    jsons += "]"
-
-    return jsonify(jsons)
+        testRecordAnswer.Grade = 0
+    
+    testRecordAnswerServer.update_sql(testRecordAnswer)
+    
+    # 返回详细的JSON结果
+    return jsonify(result)
 
 
 
@@ -398,6 +365,47 @@ def myprofile():
     users = json.loads(session["logged_in"])
     studentsServer = StudentsServer()
     user = studentsServer.select_sql_by_id(users["Id"])
+    # 容错与自愈：如库里存在空字段，回填 session 并尝试写回数据库（不再处理 Address）
+    try:
+        from OnlineJudgeSystem.common.MySqlHelper import MySqlHelper
+        need_update = False
+        # 以 session 为可信源
+        sess_username = users.get("UserName") or users.get("User_Name")
+        sess_name = users.get("Name")
+        sess_phone = users.get("Phone")
+    # 地址字段已废弃
+
+        if user:
+            if not getattr(user, 'UserName', None) and sess_username:
+                user.UserName = sess_username
+                need_update = True
+            if (not getattr(user, 'Name', None)) and sess_name:
+                user.Name = sess_name
+                need_update = True
+            if (not getattr(user, 'Phone', None)) and sess_phone:
+                user.Phone = sess_phone
+                need_update = True
+            # 不再处理 Address 字段
+
+            if need_update:
+                helper = MySqlHelper()
+                # 仅更新非空字段，避免覆盖已有信息
+                sets = []
+                if user.UserName:
+                    sets.append(f"User_Name='{user.UserName}'")
+                if user.Name:
+                    sets.append(f"Name='{user.Name}'")
+                if user.Phone:
+                    sets.append(f"Phone='{user.Phone}'")
+                # 不再更新 Address 字段
+                if sets:
+                    sql = f"UPDATE students SET {', '.join(sets)} WHERE Id={int(users['Id'])}"
+                    helper.query(sql, "")
+                    helper.connent.commit()
+                    helper.end()
+    except Exception as _:
+        # 自愈不应影响页面渲染，忽略更新失败
+        pass
     return render_template(
         'users/myprofile.html',
         user=user,

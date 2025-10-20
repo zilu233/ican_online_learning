@@ -89,7 +89,7 @@
                             <th class="sorting" role="columnheader" tabindex="0" aria-controls="example" rowspan="1" colspan="1" aria-label="Engine version: activate to sort column ascending" style="width: 250px;">学生姓名</th>
                             <!--<th class="sorting" role="columnheader" tabindex="0" aria-controls="example" rowspan="1" colspan="1" aria-label="CSS grade: activate to sort column ascending" style="width: 215px;">身份证号</th>-->
                             <th class="sorting" role="columnheader" tabindex="0" aria-controls="example" rowspan="1" colspan="1" aria-label="CSS grade: activate to sort column ascending" style="width: 215px;">手机号码</th>
-                            <th class="sorting" role="columnheader" tabindex="0" aria-controls="example" rowspan="1" colspan="1" aria-label="CSS grade: activate to sort column ascending" style="width: 300px;">家庭住址</th>
+                            
                         </tr>
                     </thead>
 
@@ -99,11 +99,13 @@
                             <td class="  sorting_1">{{item.Id}}</td>
                             <td class=" ">{{item.UserName}}</td>
                             <!--<td class=" ">{{item.PWD}}</td> -->
-                            <td class="center ">{{ item.Classes }}</td>
+                            <!-- 第三列：学生班级 -->
+                            <td class="center ">{{ item.ClassName or item.Classes }}</td>
+                            <!-- 第四列：学生姓名 -->
                             <td class="center ">{{item.Name}}</td>
                             <!--<td class="center ">{{item.Card}}</td>-->
+                            <!-- 第五列：手机号码 -->
                             <td class="center ">{{item.Phone}}</td>
-                            <td class="center ">{{item.Address}}</td>
                         </tr>
                         {% endfor %}
 

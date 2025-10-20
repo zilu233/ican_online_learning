@@ -2,6 +2,7 @@
 from OnlineJudgeSystem.model.TestRecordAnswerSelect import TestRecordAnswerSelect
 from OnlineJudgeSystem.common.MySqlHelper import MySqlHelper
 from OnlineJudgeSystem.model.TestRecordAnswer import TestRecordAnswer
+from OnlineJudgeSystem.model.TestContent import TestContent
 
 
 class TestRecord(object):
@@ -138,12 +139,12 @@ class TestRecordServer(object):
                     index = 0
                     for row in mysql.cursor.fetchall():
                         testRecordAnswerSelect  = TestRecordAnswerSelect()
-                        testRecordAnswerSelect.Id  = row[0]  
-                        testRecordAnswerSelect.TestRecordId   = row[1]  
+                        testRecordAnswerSelect.Id  = row[0]
+                        testRecordAnswerSelect.TestRecordId   = row[1]
                         testRecordAnswerSelect.TestSelectId   = row[2]
-                        testRecordAnswerSelect.AnswerSelect   = row[3] 
+                        testRecordAnswerSelect.AnswerSelect   = row[3]
                         testRecordAnswerSelect.Grade          = row[4]
-                        testRecord.TestSelect.append(testRecordAnswer)
+                        testRecord.TestSelect.append(testRecordAnswerSelect)
                 data.append(testRecord);
             mysql.end()
         return data

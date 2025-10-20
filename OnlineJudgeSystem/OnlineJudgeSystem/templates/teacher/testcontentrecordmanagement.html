@@ -64,7 +64,7 @@
                                     <th class="sorting" role="columnheader" tabindex="0" aria-controls="example" rowspan="1" colspan="1" aria-label="Browser: activate to sort column ascending" style="width: 215px;">用户名称</th>
                                     <th class="sorting" role="columnheader" tabindex="0" aria-controls="example" rowspan="1" colspan="1" aria-label="Engine version: activate to sort column ascending" style="width: 215px;">用户姓名</th>
                                     <th class="sorting" role="columnheader" tabindex="0" aria-controls="example" rowspan="1" colspan="1" aria-label="CSS grade: activate to sort column ascending" style="width: 215px;">手机号码</th>
-                                    <th class="sorting" role="columnheader" tabindex="0" aria-controls="example" rowspan="1" colspan="1" aria-label="CSS grade: activate to sort column ascending" style="width: 300px;">家庭住址</th>
+                                    <th class="sorting" role="columnheader" tabindex="0" aria-controls="example" rowspan="1" colspan="1" aria-label="CSS grade: activate to sort column ascending" style="width: 300px;">班级</th>
                                     <th class="sorting" role="columnheader" tabindex="0" aria-controls="example" rowspan="1" colspan="1" aria-label="CSS grade: activate to sort column ascending" style="width: 89px;">测试结果</th>
                                     <th class="sorting" role="columnheader" tabindex="0" aria-controls="example" rowspan="1" colspan="1" aria-label="CSS grade: activate to sort column ascending" style="width: 200px;">做题时间</th>
                                     <th class="sorting" role="columnheader" tabindex="0" aria-controls="example" rowspan="1" colspan="1" aria-label="CSS grade: activate to sort column ascending" style="width: 89px;">总答题分</th>
@@ -80,7 +80,7 @@
                                     <td class=" ">{{item.UserName}}</td>
                                     <td class="center ">{{item.Name}}</td>
                                     <td class="center ">{{item.Phone}}</td>
-                                    <td class="center ">{{item.Address}}</td>
+                                    <td class="center ">{{ item.ClassName or item.Classes }}</td>
                                     <td class="center ">
                                         <a class="btn btn-primary" href="javascript:void(0);" onclick="showInformation({{item1.Id}})">查&nbsp;看</a>
                                     </td>

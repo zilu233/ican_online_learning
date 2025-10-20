@@ -208,7 +208,7 @@
                 const outputElement = document.getElementById(`output_${questionId}`);
                 const outputContainer = outputElement.parentElement;
                 outputContainer.classList.remove('hidden');
-                outputElement.textContent = '正在运行...';
+                outputElement.innerHTML = '<div style="color: #007bff;">⏳ 正在运行代码...</div>';
 
                 fetch('/runcode', {
                     method: 'POST',
@@ -218,13 +218,64 @@
                     body: `testRecordId=${testRecordId}&testAnswerId=${testAnswerId}&testContentId=${questionId}&pycode=${encodeURIComponent(code)}`
                 })
                 .then(response => response.json())
-                .then(data => {
-                    const result = JSON.parse(data)[1].msg;
-                    outputElement.textContent = result;
+                .then(result => {
+                    // 新版API直接返回对象，无需再次解析
+                    let resultHtml = '<div style="padding: 15px; margin: 10px 0; border-radius: 5px; border: 2px solid; background: white;">';
+                    
+                    if (result.code == 1) {
+                        // 成功
+                        resultHtml += '<h4 style="color: #28a745; margin: 0 0 10px 0;">✅ ' + result.msg + '</h4>';
+                        if (result.output) {
+                            resultHtml += '<p style="margin: 5px 0;"><strong>程序输出：</strong></p>';
+                            resultHtml += '<pre style="background: #f8f9fa; padding: 10px; border-radius: 3px; overflow-x: auto; font-family: monospace;">' + 
+                                         result.output + '</pre>';
+                        }
+                        resultHtml += '</div>';
+                        outputElement.innerHTML = resultHtml;
+                    } else {
+                        // 失败 - 显示详细错误信息
+                        resultHtml += '<h4 style="color: #dc3545; margin: 0 0 10px 0;">❌ ' + result.msg + '</h4>';
+                        
+                        if (result.error_type) {
+                            resultHtml += '<p style="margin: 5px 0;"><strong>错误类型：</strong> ' + 
+                                         '<span style="color: #dc3545; font-family: monospace; font-weight: bold;">' + 
+                                         result.error_type + '</span></p>';
+                        }
+                        
+                        if (result.error_line) {
+                            resultHtml += '<p style="margin: 5px 0;"><strong>错误位置：</strong> ' + 
+                                         result.error_line + '</p>';
+                        }
+                        
+                        if (result.error_detail) {
+                            resultHtml += '<p style="margin: 5px 0;"><strong>错误详情：</strong></p>';
+                            resultHtml += '<div style="background: #f8d7da; padding: 10px; border-radius: 3px; ' +
+                                         'color: #721c24; white-space: pre-wrap; font-family: monospace;">' + 
+                                         result.error_detail + '</div>';
+                        }
+                        
+                        if (result.output) {
+                            resultHtml += '<p style="margin: 10px 0 5px 0;"><strong>程序输出：</strong></p>';
+                            resultHtml += '<pre style="background: #f8f9fa; padding: 10px; border-radius: 3px; overflow-x: auto; font-family: monospace;">' + 
+                                         result.output + '</pre>';
+                        }
+                        
+                        if (result.traceback) {
+                            resultHtml += '<details style="margin-top: 10px;">';
+                            resultHtml += '<summary style="cursor: pointer; color: #007bff; font-weight: bold;">📋 查看完整错误堆栈</summary>';
+                            resultHtml += '<pre style="background: #f1f1f1; padding: 10px; margin-top: 5px; border-radius: 3px; ' +
+                                         'overflow-x: auto; font-size: 12px; font-family: monospace;">' + result.traceback + '</pre>';
+                            resultHtml += '</details>';
+                        }
+                        
+                        resultHtml += '</div>';
+                        outputElement.innerHTML = resultHtml;
+                    }
                 })
                 .catch(error => {
                     console.error('Error:', error);
-                    outputElement.textContent = '运行出错: ' + error.message;
+                    outputElement.innerHTML = '<div style="color: #dc3545; padding: 15px; border: 2px solid #dc3545; border-radius: 5px; background: #f8d7da;">' +
+                                             '<strong>❌ 运行出错:</strong> ' + error.message + '</div>';
                 });
             });
         });

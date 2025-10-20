@@ -13,3 +13,4 @@ import OnlineJudgeSystem.views
 import OnlineJudgeSystem.adminuserviews
 import OnlineJudgeSystem.teacherviews
 import OnlineJudgeSystem.usersviews
+import OnlineJudgeSystem.schoolviews  # 多学校班级管理系统API

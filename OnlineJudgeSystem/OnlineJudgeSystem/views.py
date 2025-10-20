@@ -13,7 +13,12 @@ from OnlineJudgeSystem.model.Students import Students, StudentsServer
 from OnlineJudgeSystem.model.Teachers import Teachers, TeachersServer
 from OnlineJudgeSystem.model.TestContent import TestContentServer, TestContent
 from OnlineJudgeSystem.model.TestRecord import TestRecord,  TestRecordServer
-from .cacher import *
+try:
+    from .cacher import cache
+except Exception:
+    def cache(*args, **kwargs):
+        # 缺省空实现，避免因缺少 cacher 导致启动失败
+        return None
 
 @app.route('/')
 @app.route('/login',methods=['GET', 'POST'])
@@ -31,12 +36,12 @@ def login():
             adminsServer = AdminsServer()
             data = adminsServer.select_sql_login(admins)
 
-            if data != None :           
+            if data is not None:
                 session['logged_in'] = data.to_json()
                 session['logged_type'] = "admin"
                 return redirect("/adminindex")
-
-            return render_template('loginAndRegister.html', title='登录', error='登录失败，请重新输入')
+            else:
+                return render_template('loginAndRegister.html', title='登录', error='登录失败，请重新输入')
 
         elif types == "1":
             teachers = Teachers()
@@ -45,12 +50,12 @@ def login():
             teachersServer    = TeachersServer()
             data = teachersServer.select_sql_login(teachers)
 
-            if data != None :           
+            if data is not None:
                 session['logged_in'] = data.to_json()
                 session['logged_type'] = "teacher"
                 return redirect("/home")
-
-            return render_template('loginAndRegister.html', title='登录', error='登录失败，请重新输入')
+            else:
+                return render_template('loginAndRegister.html', title='登录', error='登录失败，请重新输入')
 
         elif types == "2":
             students = Students()
@@ -59,12 +64,12 @@ def login():
             studentsServer = StudentsServer()
             data = studentsServer.select_sql_login(students)
 
-            if data != None :           
+            if data is not None:
                 session['logged_in'] = data.to_json()
                 session['logged_type'] = "student"
                 return redirect("/home")
-
-            return render_template('loginAndRegister.html', title='登录', error='登录失败，请重新输入')
+            else:
+                return render_template('loginAndRegister.html', title='登录', error='登录失败，请重新输入')
 
         else:
 
@@ -96,51 +101,71 @@ def register():
         name      =  request.form.get('name')
         card      =  request.form.get('card')
         phone     =  request.form.get('phone')
-        address   =  request.form.get('address')
+        # 兼容旧前端：旧版仍可能提交 address，这里作为班级的别名处理
+        classes   =  request.form.get('classes') or request.form.get('address')
 
-        if username == '' or pwd == '' or name == '' or card == '' or phone == '' or address =='':
+        if username == '' or pwd == '' or name == '' or card == '' or phone == '' or classes =='':
             return redirect("/login")
 
         if user_type == "0":
             teachers = Teachers()
-            #将用户请求转发给相应的Model
             teachers.UserName = username
             teachers.PWD   = pwd
             teachers.Name  = name
             teachers.Card = card
             teachers.Phone = phone
-            teachers.Address = address
+            # 不再采集住址；如果需要显示班级，先写入兼容字段 Classes
+            teachers.Classes = classes
             teachersServer = TeachersServer()
             data = teachersServer.select_sql_exist(teachers)
 
-            if data == None :           
-                teachersServer.insert_sql(teachers);
+            import sys
+            if data is None:
+                print("[DEBUG] teachersServer.insert_sql(teachers) called", file=sys.stderr)
+                teachersServer.insert_sql(teachers)
+                print("[DEBUG] teachersServer.select_sql_login(teachers) called", file=sys.stderr)
                 data = teachersServer.select_sql_login(teachers)
-                session['logged_in'] = data.to_json()
-                session['logged_type'] = "teacher"
-                return redirect("/home")
-            return redirect("/login")
+                print(f"[DEBUG] select_sql_login result: {data}", file=sys.stderr)
+                if data is not None:
+                    session['logged_in'] = data.to_json()
+                    session['logged_type'] = "teacher"
+                    return redirect("/home")
+                else:
+                    print("[ERROR] 注册后 select_sql_login 返回 None", file=sys.stderr)
+                    return render_template('loginAndRegister.html', title="注册", msg="注册失败，数据写入异常，请重试")
+            else:
+                print("[ERROR] 用户名已存在", file=sys.stderr)
+                return render_template('loginAndRegister.html', title="注册", msg="用户名已存在，请更换用户名")
 
-        else :
-
-            #将用户请求转发给相应的Model
+        else:
             students = Students()
             students.UserName = username
             students.PWD   = pwd
             students.Name  = name
             students.Card = card
             students.Phone = phone
-            students.Address = address
+            # 不再采集住址；保存班级到兼容字段 Classes
+            students.Classes = classes
             studentsServer = StudentsServer()
             data = studentsServer.select_sql_exist(students)
 
-            if data == None :           
-                studentsServer.insert_sql(students);
+            import sys
+            if data is None:
+                print("[DEBUG] studentsServer.insert_sql(students) called", file=sys.stderr)
+                studentsServer.insert_sql(students)
+                print("[DEBUG] studentsServer.select_sql_login(students) called", file=sys.stderr)
                 data = studentsServer.select_sql_login(students)
-                session['logged_in'] = data.to_json()
-                session['logged_type'] = "student"
-                return redirect("/home")
-            return redirect("/login")
+                print(f"[DEBUG] select_sql_login result: {data}", file=sys.stderr)
+                if data is not None:
+                    session['logged_in'] = data.to_json()
+                    session['logged_type'] = "student"
+                    return redirect("/home")
+                else:
+                    print("[ERROR] 注册后 select_sql_login 返回 None", file=sys.stderr)
+                    return render_template('loginAndRegister.html', title="注册", msg="注册失败，数据写入异常，请重试")
+            else:
+                print("[ERROR] 用户名已存在", file=sys.stderr)
+                return render_template('loginAndRegister.html', title="注册", msg="用户名已存在，请更换用户名")
     else:
         return render_template(
             'loginAndRegister.html',
