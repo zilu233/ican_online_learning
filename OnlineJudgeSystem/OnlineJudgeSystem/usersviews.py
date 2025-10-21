@@ -6,6 +6,7 @@ from datetime import datetime
 from flask import render_template, jsonify, request, session, redirect
 from werkzeug.exceptions import RequestURITooLarge
 from OnlineJudgeSystem import app
+from OnlineJudgeSystem.common.ai_client import get_client, AIClientError
 from OnlineJudgeSystem.model.TestContent import TestContentServer, TestContent
 from OnlineJudgeSystem.common.CodeExecutor import CodeExecutor
 import json
@@ -356,6 +357,50 @@ def runcode():
     
     # 返回详细的JSON结果
     return jsonify(result)
+
+
+
+@app.route('/ask_model', methods=['POST'])
+def ask_model():
+    """Accepts JSON {question: str, provider: optional} and returns AI provider answer."""
+    data = request.get_json(force=True, silent=True)
+    if not data:
+        return jsonify({'success': False, 'error': 'missing_json_body'}), 400
+
+    question = data.get('question')
+    provider = data.get('provider')
+
+    if not question or not isinstance(question, str):
+        return jsonify({'success': False, 'error': 'invalid_question'}), 400
+
+    try:
+        client = get_client(provider)
+        success, resp = client.ask(question, metadata={'path': request.path, 'user': session.get('logged_in')})
+    except AIClientError as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+    if not success:
+        # resp is expected to contain an 'error' key and possibly 'error_type'
+        error_info = resp if isinstance(resp, dict) else {'error': str(resp)}
+        err_type = error_info.get('error_type', '')
+        suggestion = ''
+        if err_type == 'dns_error':
+            suggestion = '请检查服务器 DNS 配置或确认 KIMI_ENDPOINT 环境变量是否正确（可尝试在服务器上使用 `nslookup` 或 `ping` 测试）。'
+        elif err_type == 'network_error':
+            suggestion = '网络连接失败，请检查服务器网络/代理设置，或确认能访问模型提供商的 host。'
+        elif err_type == 'invalid_response':
+            suggestion = '模型返回了不可解析的响应。请检查提供商文档或返回的 body 字段。'
+        elif err_type == 'provider_error':
+            suggestion = '提供商返回 error status，请查看返回的 status_code 和 body 以获取更多信息。'
+        else:
+            suggestion = '请查看服务器日志获取更多信息。'
+
+        # log for server-side debugging
+        app.logger.warning('ask_model failed: %s; suggestion: %s', error_info, suggestion)
+
+        return jsonify({'success': False, 'error': error_info, 'suggestion': suggestion}), 502
+
+    return jsonify({'success': True, 'answer': resp.get('answer'), 'raw': resp.get('raw')})
 
 
 

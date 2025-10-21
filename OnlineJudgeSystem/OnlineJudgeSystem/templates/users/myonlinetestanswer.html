@@ -37,6 +37,23 @@
     input[type="checkbox"] {
         margin-right: 10px;
     }
+
+    /* 更高的下拉框样式：适用于答题页面的两个下拉框 */
+    .tall-select {
+        height: 40px; /* 控制下拉框高度 */
+        line-height: 40px;
+        padding: 6px 8px;
+        font-size: 14px;
+        box-sizing: border-box;
+    }
+
+    /* 题目全文显示区：支持换行和长词断行 */
+    #content {
+        white-space: pre-wrap; /* 保留换行并自动换行 */
+        word-break: break-word; /* 在必要时断词换行 */
+        display: block;
+        padding: 8px;
+    }
 </style>
 
 <!--
@@ -168,11 +185,12 @@
                 <div id="example_wrapper" class="dataTables_wrapper form-inline" role="grid">
 
 
-                    <select id="selectContent" style="width:95%">
+                    <select id="selectContent" class="tall-select" style="width:95%">
                         <option value="0"></option>
 
-                        {% for item in test_content%}
-                        <option value="{{item.Id}}">{{item.Content}}</option>
+                        {% for item in test_content %}
+                        {# 在下拉中只显示前 80 字以免被截断，完整内容放到 title 上以便悬停查看 #}
+                        <option value="{{ item.Id }}" title="{{ item.Content|e }}">{{ item.Content[:80] }}{% if item.Content|length > 80 %}...{% endif %}</option>
                         {% endfor %}
 
                     </select>
@@ -253,9 +271,9 @@
     var test_select_is_end  = false;
     var test_content_is_end = false;
 
-    var test_record_id   = {{ test_record_id }}
-    var select_value_id  = {{ test_select_record }};
-    var content_value_id = {{ test_content_record }};
+    var test_record_id   = {{ test_record_id | tojson }};
+    var select_value_id  = {{ test_select_record | tojson }};
+    var content_value_id = {{ test_content_record | tojson }};
 
     var countContent = 0;
 
@@ -323,6 +341,16 @@
             $('#error').css("display", "none");
             if (testId == 0) {
                 return;
+            }
+
+            // 立即把完整题目文本显示到页面的内容区（使用 option 的 title 属性），避免下拉项自身被截断导致看不全
+            try {
+                var immediateFull = $(this).children('option:selected').attr('title') || '';
+                if (immediateFull) {
+                    $("#content").html(immediateFull);
+                }
+            } catch (e) {
+                // ignore
             }
 
             $.ajax({
@@ -466,6 +494,61 @@
     });
 
 
+</script>
+
+<!-- AI 问答面板脚本：插入到页面并绑定事件 -->
+<script>
+    $(function () {
+        // 在运行结果区域之后动态插入 AI 面板
+        var aiPanelHtml = '\n            <div id="ai-panel" style="margin-top:18px;border:1px solid #e6e6e6;padding:12px;border-radius:6px;background:#fbfbfb;">' +
+            '<h4 style="margin-top:0">智能问答助手</h4>' +
+            '<div style="margin-bottom:8px"><select id="ai-provider" class="tall-select"><option value="">默认</option><option value="kimi">Kimi</option><option value="deepseek">DeepSeek</option></select></div>' +
+            '<textarea id="ai-question" placeholder="输入你的问题，例如：输入输出示例、优化建议、测试用例提示等" style="width:100%;height:80px;margin-bottom:8px"></textarea>' +
+            '<div style="text-align:right"><button id="ai-ask" type="button">向模型提问</button></div>' +
+            '<div id="ai-answer" style="margin-top:10px;white-space:pre-wrap;padding:10px;border-radius:4px;background:#fff"></div>' +
+            '</div>';
+
+        // 如果页面中存在 run-result，则插入到其后，否则插入到 selectContent 之后
+        if ($('#run-result').length) {
+            $('#run-result').after(aiPanelHtml);
+        } else if ($('#selectContent').length) {
+            $('#selectContent').after(aiPanelHtml);
+        }
+
+        // 绑定提问事件
+        $(document).on('click', '#ai-ask', function () {
+            var question = $('#ai-question').val();
+            var provider = $('#ai-provider').val();
+            if (!question || question.trim() === '') {
+                alert('请输入问题');
+                return;
+            }
+
+            $('#ai-answer').html('正在向模型请求，请稍候...');
+
+            var payload = { question: question };
+            if (provider) payload.provider = provider;
+
+            $.ajax({
+                url: '/ask_model',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(payload),
+                success: function (res) {
+                    if (res && res.success) {
+                        var ans = res.answer || JSON.stringify(res.raw, null, 2);
+                        $('#ai-answer').html('<strong>模型回答：</strong><br/>' + ans);
+                    } else {
+                        var err = (res && res.error) ? JSON.stringify(res.error) : '未知错误';
+                        $('#ai-answer').html('<span style="color:#c00">调用失败：' + err + '</span>');
+                    }
+                },
+                error: function (xhr) {
+                    $('#ai-answer').html('<span style="color:#c00">请求出错：' + xhr.status + '</span>');
+                }
+            });
+        });
+    });
 </script>
 
 
