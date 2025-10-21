@@ -78,11 +78,18 @@
                         <span class="bg-primary text-white rounded-full w-6 h-6 flex items-center justify-center mr-2">1</span>
                         试卷基本信息
                     </h3>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label for="testname" class="form-label">试卷名称</label>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
+                        <div class="flex flex-col h-full">
+                            <label for="testname" class="form-label mb-2">试卷名称</label>
                             <input type="text" id="testname" name="testname" required
-                                class="form-control" placeholder="请输入试卷名称">
+                                class="form-control h-12 mt-0" placeholder="请输入试卷名称">
+                        </div>
+                        <div class="flex flex-col h-full">
+                            <label for="testtype" class="form-label mb-2">试卷类型</label>
+                            <select id="testtype" name="testtype" class="form-control h-12 mt-0">
+                                <option value="homework">作业（允许 AI 辅助）</option>
+                                <option value="exam">考试（禁止 AI 辅助）</option>
+                            </select>
                         </div>
                     </div>
                 </div>
@@ -282,6 +289,8 @@ function checkIsOk() {
     }
     return false;
 }
+
+        // no external full-text display for testtype; keep select only
         
         // 显示错误提示
         function showError(message) {

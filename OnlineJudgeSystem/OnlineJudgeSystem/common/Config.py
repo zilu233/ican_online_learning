@@ -12,6 +12,7 @@ AI_PROVIDERS = {
 		'endpoint': os.environ.get('KIMI_ENDPOINT', 'https://api.moonshot.cn'),
 		'api_key': os.environ.get('KIMI_API_KEY', 'sk-X3JKAH3YnNb4KmzN0HopGaVV6FVnCokoIGgiAGoiflD1O3Vj'),
 		'timeout': int(os.environ.get('KIMI_TIMEOUT', '10')),
+    'model': os.environ.get('KIMI_MODEL', 'moonshot-v1-auto'),
 	},
 	'deepseek': {
 		'endpoint': os.environ.get('DEEPSEEK_ENDPOINT', 'https://api.deepseek.example/v1/query'),

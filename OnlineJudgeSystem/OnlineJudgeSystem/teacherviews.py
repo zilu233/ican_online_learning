@@ -392,12 +392,18 @@ def testmanagementadd():
         test_name = request.form.get('testname')
         select_text = request.form.get('selecttext')
         program_text = request.form.get('programetext')
+        test_type = request.form.get('testtype') or 'homework'
 
         # 插入试卷信息到 Test 表
         test = Test()
         test.TestName = test_name
         test.SelectText = select_text
         test.ProgrameText = program_text
+        # 保存试卷类型（homework/exam）
+        try:
+            test.TestType = test_type
+        except Exception:
+            test.TestType = 'homework'
 
 
         test_id = TestServer().insert_sql(test)
@@ -452,6 +458,7 @@ def testmanagementedit():
         testname = request.form.get('testname')
         programetext = request.form.get('programetext')
         selecttext = request.form.get('selecttext')
+        testtype = request.form.get('testtype') or 'homework'
 
         if testname == '' or programetext == '' or selecttext == '':
             return redirect("/testmanagement")
@@ -462,6 +469,10 @@ def testmanagementedit():
             test.TestName = testname
             test.ProgrameText = programetext
             test.SelectText = selecttext
+            try:
+                test.TestType = testtype
+            except Exception:
+                test.TestType = 'homework'
             testServer = TestServer()
             testServer.update_sql(test)
 

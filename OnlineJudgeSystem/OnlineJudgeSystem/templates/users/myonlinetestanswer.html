@@ -275,6 +275,11 @@
     var select_value_id  = {{ test_select_record | tojson }};
     var content_value_id = {{ test_content_record | tojson }};
 
+    // Current test id (used by AI request to validate whether AI is allowed)
+    window.CURRENT_TEST_ID = {{ test.Id | tojson }};
+    // Current test type: 'homework' or 'exam'
+    window.CURRENT_TEST_TYPE = {{ test.TestType | tojson }};
+
     var countContent = 0;
 
     function testOver() {
@@ -508,11 +513,23 @@
             '<div id="ai-answer" style="margin-top:10px;white-space:pre-wrap;padding:10px;border-radius:4px;background:#fff"></div>' +
             '</div>';
 
-        // 如果页面中存在 run-result，则插入到其后，否则插入到 selectContent 之后
-        if ($('#run-result').length) {
-            $('#run-result').after(aiPanelHtml);
-        } else if ($('#selectContent').length) {
-            $('#selectContent').after(aiPanelHtml);
+        // 根据试卷类型决定是否显示 AI 面板（考试禁止）
+        if (window.CURRENT_TEST_TYPE === 'exam') {
+            var disabledHtml = '<div id="ai-panel" style="margin-top:18px;border:1px solid #e6e6e6;padding:12px;border-radius:6px;background:#f5f5f5;color:#666">' +
+                '<h4 style="margin-top:0">智能问答助手（已禁用）</h4>' +
+                '<p>本试卷为 <strong>考试</strong>，为保证考试公平，AI 助手已被禁用。</p>' +
+                '</div>';
+            if ($('#run-result').length) {
+                $('#run-result').after(disabledHtml);
+            } else if ($('#selectContent').length) {
+                $('#selectContent').after(disabledHtml);
+            }
+        } else {
+            if ($('#run-result').length) {
+                $('#run-result').after(aiPanelHtml);
+            } else if ($('#selectContent').length) {
+                $('#selectContent').after(aiPanelHtml);
+            }
         }
 
         // 绑定提问事件
@@ -526,7 +543,7 @@
 
             $('#ai-answer').html('正在向模型请求，请稍候...');
 
-            var payload = { question: question };
+            var payload = { question: question, test_id: window.CURRENT_TEST_ID };
             if (provider) payload.provider = provider;
 
             $.ajax({

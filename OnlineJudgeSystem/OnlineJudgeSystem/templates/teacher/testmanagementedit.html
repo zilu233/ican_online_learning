@@ -56,6 +56,7 @@
 </head>
 <body class="bg-gray-50 min-h-screen">
     <div class="container mx-auto px-4 py-8 max-w-4xl">
+        <!-- verification banner removed -->
         <!-- 导航栏 -->
         <nav class="flex justify-between items-center mb-8">
             <div class="text-xl font-bold text-gray-800">
@@ -85,11 +86,18 @@
                         <span class="bg-primary text-white rounded-full w-6 h-6 flex items-center justify-center mr-2">1</span>
                         试卷基本信息
                     </h3>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label for="testname" class="form-label">试卷名称</label>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
+                        <div class="flex flex-col h-full">
+                            <label for="testname" class="form-label mb-2">试卷名称</label>
                             <input type="text" id="testname" name="testname" required
-                                class="form-control" placeholder="请输入试卷名称" value="{{data.TestName}}">
+                                class="form-control h-12 mt-0" placeholder="请输入试卷名称" value="{{data.TestName}}">
+                        </div>
+                        <div class="flex flex-col h-full">
+                            <label for="testtype" class="form-label mb-2">试卷类型</label>
+                            <select id="testtype" name="testtype" class="form-control h-12 mt-0">
+                                <option value="homework" {% if data.TestType == 'homework' %}selected{% endif %}>作业（允许 AI 辅助）</option>
+                                <option value="exam" {% if data.TestType == 'exam' %}selected{% endif %}>考试（禁止 AI 辅助）</option>
+                            </select>
                         </div>
                     </div>
                 </div>
@@ -343,6 +351,9 @@
                 updateSelectedCount();
             }
         }
+
+        // 显示 testtype 的完整文本到下方容器，避免 select 本身被截断
+        // no external full-text display for testtype; keep select only
     </script>
 </body>
 </html>

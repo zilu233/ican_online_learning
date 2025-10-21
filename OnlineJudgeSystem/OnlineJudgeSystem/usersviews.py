@@ -115,6 +115,12 @@ def myonlineanswer():
         testRecordAnswerServer.insert_sql(testRecordAnswer)
         ids = testRecordAnswerServer.select_sql_last_id()
         test_content_record.append(ids)
+    # Save current test id in session so server-side checks can enforce AI policy even if client omits test_id
+    try:
+        session['current_test_id'] = test.Id
+    except Exception:
+        # ignore if session unavailable
+        app.logger.debug('Unable to set session current_test_id')
 
     return render_template(
         'users/myonlinetestanswer.html',
@@ -369,11 +375,26 @@ def ask_model():
 
     question = data.get('question')
     provider = data.get('provider')
+    test_id = data.get('test_id')
 
     if not question or not isinstance(question, str):
         return jsonify({'success': False, 'error': 'invalid_question'}), 400
 
     try:
+        # Determine test id: prefer payload, else fallback to session value saved at test start
+        if not test_id:
+            test_id = session.get('current_test_id')
+
+        # If a test_id is available, check the test type and forbid AI usage for exams
+        if test_id:
+            try:
+                test_obj = TestServer().select_sql_by_id(test_id)
+                if getattr(test_obj, 'TestType', 'homework') == 'exam':
+                    return jsonify({'success': False, 'error': 'ai_disabled_for_exam', 'message': '该试卷为考试，禁止使用 AI 助手。'}), 403
+            except Exception:
+                # If we cannot read test info, log and continue to allow (or you may choose to reject)
+                app.logger.warning('ask_model: failed to read test object for id %s', test_id)
+
         client = get_client(provider)
         success, resp = client.ask(question, metadata={'path': request.path, 'user': session.get('logged_in')})
     except AIClientError as e:
