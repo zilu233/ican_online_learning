@@ -21,9 +21,12 @@ python程序设计在线学习系统
                         <input name="username" type="text" placeholder="用户名">
                         <input name="pwd" type="password" placeholder="密码">
                         <input name="name" type="text" placeholder="姓名">
-                        <input name="card"  type="number" placeholder="身份证">
+                        <input name="card"  type="text" placeholder="工号">
                         <input name="phone"   type="number" placeholder="电话号码">
-                        <input name="classes"   type="text" placeholder="班级">
+                        <!-- 班级改为手动输入（学生必填）。保留旧 name 以外的新 name=class_name，后端兼容解析。 -->
+                        <input name="class_name" type="text" placeholder="请输入班级名称（学生必填）"
+                               style=" background: #EAC7CC; width: 72%; color: #333; border: 0; border-bottom: 1px solid rgba(246, 246, 246, 0.5); padding: 9px; margin: 7px;" />
+                        <span style="display:block;width:72%;margin:0 auto;color:#7a6c7e;font-size:12px;text-align:left;">学生注册需填写班级名称；如不确定，请联系任课老师确认准确班级名。</span>
 
                         <select name="types" style=" background: #EAC7CC; width: 72%; color: #ce7d88; border: 0; border-bottom: 1px solid rgba(246, 246, 246, 0.5); padding: 9px; margin: 7px;" type="checkbox" id="remember">
                             <option value="0">教师</option>
@@ -74,7 +77,22 @@ python程序设计在线学习系统
 
     <!-- partial -->
     <script src="../static/loginRegister/jquery.min.js?v=20251019"></script>
-    <script src="../static/loginRegister/script.js?v=20251019"></script>
+        <script src="../static/loginRegister/script.js?v=20251019"></script>
+        <script>
+            // 根据注册类型动态切换“工号/学号”占位符
+            (function() {
+                const typeSelect = document.querySelector('.signup select[name="types"]');
+                const cardInput = document.querySelector('.signup input[name="card"]');
+                if (!typeSelect || !cardInput) return;
+                const syncPlaceholder = () => {
+                    const isTeacher = String(typeSelect.value) === '0';
+                    cardInput.placeholder = isTeacher ? '工号' : '学号';
+                };
+                typeSelect.addEventListener('change', syncPlaceholder);
+                // 初次加载按当前选择同步（默认教师）
+                syncPlaceholder();
+            })();
+        </script>
     {% if error %}
     <script>
         window.onload = function() {

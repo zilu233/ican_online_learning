@@ -1,5 +1,6 @@
 from OnlineJudgeSystem.model.TestRecord import TestRecord, TestRecordServer
 from OnlineJudgeSystem.common.MySqlHelper import MySqlHelper
+from OnlineJudgeSystem.model.Classes import ClassesServer
 import json
 
 class Students(object):
@@ -90,8 +91,10 @@ class StudentsServer(object):
         # 联表获取班级名称，兼容老字段 Classes
         sql = (
             "SELECT s.Id, s.User_Name, s.PWD, s.Classes, s.Name, s.Card, s.Phone, s.Address, "
-            "s.school_id, s.class_id, s.enrollment_date, s.status, c.class_name "
-            "FROM students s LEFT JOIN classes c ON s.class_id=c.id ORDER BY s.Id"
+            "s.school_id, s.class_id, s.enrollment_date, s.status, sc.school_name, c.class_name "
+            "FROM students s "
+            "LEFT JOIN schools sc ON s.school_id=sc.id "
+            "LEFT JOIN classes c ON s.class_id=c.id ORDER BY s.Id"
         )
         reuslt = mysql.query(sql, "")
         data = []
@@ -110,7 +113,8 @@ class StudentsServer(object):
                 students.ClassId = row[9] or 0
                 students.EnrollmentDate = str(row[10]) if row[10] else ""
                 students.Status = row[11] or 1
-                students.ClassName = row[12] or ""
+                students.SchoolName = row[12] or ""
+                students.ClassName = row[13] or ""
                 data.append(students)
         mysql.end()
         return data
@@ -121,9 +125,10 @@ class StudentsServer(object):
         # 显式列选择，避免 select * 导致的列错位；联表拿到班级名称
         sql = (
             "SELECT s.Id, s.User_Name, s.PWD, s.Classes, s.Name, s.Card, s.Phone, s.Address, "
-            "s.school_id, s.class_id, s.enrollment_date, s.status, tr.Id AS tr_id, c.class_name "
+            "s.school_id, s.class_id, s.enrollment_date, s.status, tr.Id AS tr_id, sc.school_name, c.class_name "
             "FROM students s "
             "LEFT JOIN test_record tr ON s.Id=tr.Students_Id "
+            "LEFT JOIN schools sc ON s.school_id=sc.id "
             "LEFT JOIN classes c ON s.class_id=c.id "
             "ORDER BY s.Id, tr.Id"
         )
@@ -145,7 +150,8 @@ class StudentsServer(object):
                 stu.ClassId = row[9] or 0
                 stu.EnrollmentDate = str(row[10]) if row[10] else ""
                 stu.Status = row[11] or 1
-                stu.ClassName = row[13] or ""
+                stu.SchoolName = row[13] or ""
+                stu.ClassName = row[14] or ""
 
                 tr_id = row[12]
                 if tr_id is not None:
@@ -236,6 +242,13 @@ class StudentsServer(object):
         mysql.query(sql, "")
         #Must user commit in crud
         mysql.connent.commit()
+        # 新增后，如有班级则同步该班级人数
+        try:
+            if students.ClassId:
+                ClassesServer.update_student_count(int(students.ClassId))
+        except Exception:
+            # 忽略联动失败，避免影响主流程
+            pass
         mysql.end()  
 
 
@@ -245,6 +258,16 @@ class StudentsServer(object):
         # 构建更新语句（支持新字段）
         school_id_str = str(students.SchoolId) if students.SchoolId else "NULL"
         class_id_str = str(students.ClassId) if students.ClassId else "NULL"
+        # 获取更新前的班级ID，用于联动更新学生数
+        old_class_id = None
+        try:
+            re = mysql.query(f"SELECT class_id FROM students WHERE Id={int(students.Id)}", "")
+            if re > 0:
+                row = mysql.cursor.fetchone()
+                if row:
+                    old_class_id = row[0]
+        except Exception:
+            pass
         
         sql = f"""update students set User_Name='{students.UserName}',PWD='{students.PWD}',Classes='{students.Classes}',Name='{students.Name}',Card='{students.Card}',
                   Phone='{students.Phone}',Address='{students.Address}',school_id={school_id_str},class_id={class_id_str},status={students.Status} 
@@ -253,15 +276,40 @@ class StudentsServer(object):
         mysql.query(sql, "")
         #Must user commit in crud
         mysql.connent.commit()
+        # 同步更新班级人数（旧班级与新班级）
+        try:
+            new_class_id = students.ClassId if students.ClassId else None
+            if old_class_id and (not new_class_id or int(old_class_id) != int(new_class_id)):
+                ClassesServer.update_student_count(int(old_class_id))
+            if new_class_id:
+                ClassesServer.update_student_count(int(new_class_id))
+        except Exception:
+            pass
         mysql.end()  
 
 
     def delete_sql(self,id):
         mysql = MySqlHelper()
+        # 删除前查询该学生所在班级ID，用于联动刷新人数
+        old_class_id = None
+        try:
+            re = mysql.query(f"SELECT class_id FROM students WHERE Id={int(id)}", "")
+            if re > 0:
+                row = mysql.cursor.fetchone()
+                if row:
+                    old_class_id = row[0]
+        except Exception:
+            pass
 
         mysql.query("delete from students WHERE Id="+str(id)+";", "")
         #Must user commit in crud
         mysql.connent.commit()
+        # 删除后同步旧班级学生数
+        try:
+            if old_class_id:
+                ClassesServer.update_student_count(int(old_class_id))
+        except Exception:
+            pass
         mysql.end() 
 
 
@@ -336,9 +384,28 @@ class StudentsServer(object):
     def update_class(self, student_id, new_class_id):
         """更新学生班级"""
         mysql = MySqlHelper()
+        # 查询旧班级ID
+        old_class_id = None
+        try:
+            re = mysql.query(f"SELECT class_id FROM students WHERE Id={int(student_id)}", "")
+            if re > 0:
+                row = mysql.cursor.fetchone()
+                if row:
+                    old_class_id = row[0]
+        except Exception:
+            pass
+
         class_id_str = str(new_class_id) if new_class_id else "NULL"
-        mysql.query(f"update students set class_id={class_id_str} where Id={student_id};", "")
+        mysql.query(f"update students set class_id={class_id_str} where Id={int(student_id)};", "")
         mysql.connent.commit()
+        # 同步新旧班级的人数
+        try:
+            if old_class_id:
+                ClassesServer.update_student_count(int(old_class_id))
+            if new_class_id:
+                ClassesServer.update_student_count(int(new_class_id))
+        except Exception:
+            pass
         mysql.end()
 
 

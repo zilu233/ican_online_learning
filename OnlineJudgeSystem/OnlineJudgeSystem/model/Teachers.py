@@ -204,6 +204,20 @@ class TeachersServer(object):
         mysql.connent.commit()
         mysql.end() 
 
+    def update_classes_and_school(self, teacher_id, class_names, school_id=None):
+        """更新教师关联的班级字符串以及学校信息。"""
+        mysql = MySqlHelper()
+        safe_classes = (class_names or "").replace("'", "''")
+        school_id_str = str(int(school_id)) if school_id else "NULL"
+        sql = f"""
+            update teacher
+            set Classes='{safe_classes}', school_id={school_id_str}
+            where Id={int(teacher_id)}
+        """
+        mysql.query(sql, "")
+        mysql.connent.commit()
+        mysql.end()
+
 
     # ============ 新增方法：教师审核和多学校支持 ============
     
@@ -267,6 +281,39 @@ class TeachersServer(object):
                   where t.school_id={school_id} AND t.approval_status={approval_status}
                   ORDER BY t.Name"""
         
+        reuslt = mysql.query(sql, "")
+        data = []
+        if reuslt > 0:
+            for row in mysql.cursor.fetchall():
+                teacher = Teachers()
+                teacher.Id = row[0]
+                teacher.UserName = row[1]
+                teacher.PWD = row[2]
+                teacher.Classes = row[3]
+                teacher.Name = row[4]
+                teacher.Card = row[5]
+                teacher.Phone = row[6]
+                teacher.Address = row[7]
+                teacher.SchoolId = row[8] if row[8] else 0
+                teacher.ApprovalStatus = row[9] if row[9] else 0
+                teacher.ApprovalTime = str(row[10]) if row[10] else ""
+                teacher.ApprovalAdminId = row[11] if row[11] else 0
+                teacher.RejectionReason = row[12] if row[12] else ""
+                teacher.SchoolName = row[15] if row[15] else ""
+                data.append(teacher)
+            mysql.end()
+        return data
+
+    def select_all_approved(self, approval_status=1):
+        """查询所有学校下已审核的教师列表。"""
+        mysql = MySqlHelper()
+        sql = f"""
+            select t.*, s.school_name
+            from teacher t
+            LEFT JOIN schools s ON t.school_id = s.id
+            where t.approval_status = {int(approval_status)}
+            ORDER BY t.Name
+        """
         reuslt = mysql.query(sql, "")
         data = []
         if reuslt > 0:

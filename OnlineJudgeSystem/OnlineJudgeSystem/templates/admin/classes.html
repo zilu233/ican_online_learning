@@ -2,20 +2,49 @@
 {% block title %}班级管理{% endblock %}
 {% block content %}
 <div class="container-fluid py-3">
+  <style>
+    /* 深色主题下增强模态表单的可读性 */
+    #editModal .modal-content {
+      background-color: #1f1f26; /* 与后台深色主题一致 */
+      color: #fff;
+      border: 1px solid rgba(255,255,255,0.12);
+    }
+    #editModal .modal-header,
+    #editModal .modal-footer {
+      border-color: rgba(255,255,255,0.12);
+    }
+    #editModal .modal-title { color: #fff; }
+    #editModal .btn-close { filter: invert(1); opacity: .8; }
+    #editModal .btn-close:hover { opacity: 1; }
+
+    #editModal .form-label { color: #fff !important; }
+    #editModal .form-control,
+    #editModal .form-select {
+      color: #fff !important;
+      background-color: #1f1f26 !important;
+      border-color: rgba(255,255,255,0.25) !important;
+    }
+    #editModal .form-control::placeholder {
+      color: rgba(255,255,255,0.7) !important;
+    }
+    #editModal #status,
+    #editModal #status option,
+    #editModal #teacherId,
+    #editModal #teacherId option {
+      color: #fff !important;
+      background-color: #1f1f26 !important;
+    }
+  </style>
   <div class="d-flex justify-content-between align-items-center mb-3">
     <h4 class="mb-0">班级管理</h4>
     <div>
-      <button class="btn btn-primary" id="btnAdd">新增班级</button>
+  <button class="btn btn-primary" id="btnAdd" type="button">新增班级</button>
     </div>
   </div>
 
   <div class="card">
     <div class="card-body">
       <div class="row g-3 align-items-end mb-3">
-        <div class="col-md-3">
-          <label class="form-label">学校</label>
-          <select class="form-select" id="schoolFilter"></select>
-        </div>
         <div class="col-auto">
           <button class="btn btn-secondary" id="btnRefresh">刷新</button>
         </div>
@@ -25,14 +54,12 @@
         <table class="table table-striped table-hover align-middle" id="tblClasses">
           <thead>
             <tr>
-              <th>学校</th>
               <th>班级名称</th>
-              <th>班级代码</th>
               <th>年级</th>
-              <th>班主任</th>
+              <th>老师</th>
               <th>学生数</th>
               <th>状态</th>
-              <th style="width: 200px;">操作</th>
+              <th style="width: 220px;">操作</th>
             </tr>
           </thead>
           <tbody></tbody>
@@ -55,10 +82,6 @@
           <input type="hidden" id="classId">
           <div class="row g-3">
             <div class="col-md-6">
-              <label class="form-label">学校</label>
-              <select class="form-select" id="schoolId" required></select>
-            </div>
-            <div class="col-md-6">
               <label class="form-label">班级名称</label>
               <input class="form-control" id="className" required>
             </div>
@@ -71,7 +94,7 @@
               <input class="form-control" id="grade">
             </div>
             <div class="col-md-6">
-              <label class="form-label">班主任</label>
+              <label class="form-label">老师</label>
               <select class="form-select" id="teacherId"></select>
             </div>
             <div class="col-md-12">
@@ -89,8 +112,8 @@
         </form>
       </div>
       <div class="modal-footer">
-        <button class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-        <button class="btn btn-primary" id="btnSave">保存</button>
+  <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">取消</button>
+  <button class="btn btn-primary" id="btnSave" type="button">保存</button>
       </div>
     </div>
   </div>
@@ -99,24 +122,58 @@
 <script>
 (function() {
   const $tbl = $('#tblClasses tbody');
-  let editModal;
+  const hasBootstrapModal = typeof $.fn.modal === 'function';
 
-  function loadSchools(selectId, cb) {
-    fetch('/api/schools/all_active')
-      .then(r => r.json()).then(res => {
-        if (res.code !== 1) { alert(res.msg||'加载学校失败'); return; }
-        const $sel = $('#' + selectId);
-        $sel.empty();
-        $sel.append('<option value="">请选择学校</option>');
-        (res.data||[]).forEach(s => {
-          $sel.append(`<option value="${s.id}">${s.school_name}</option>`);
-        });
-        cb && cb();
-      })
+  // Fallback when Bootstrap's modal plugin is unavailable on this theme.
+  function showModal() {
+    if (hasBootstrapModal) {
+      $('#editModal').modal('show');
+      return;
+    }
+    const $modal = $('#editModal');
+    // 追加到 body，避免受到父容器 overflow/层级影响
+    if (!$modal.parent().is('body')) {
+      $modal.appendTo('body');
+    }
+    if (!$modal.data('backdrop')) {
+      const $backdrop = $('<div class="modal-backdrop fade" style="display:none;"></div>');
+      $modal.after($backdrop);
+      $modal.data('backdrop', $backdrop);
+    }
+    const $backdrop = $modal.data('backdrop');
+    $('body').addClass('modal-open');
+    // 兼容 Bootstrap4/5：使用 show 类；并强制 z-index
+    $backdrop.show().addClass('show');
+    $modal
+      .attr('aria-modal', 'true')
+      .removeAttr('aria-hidden')
+      .css({ display: 'block', zIndex: 2000 })
+      .addClass('show');
   }
 
-  function loadTeachers(schoolId) {
-    return fetch('/api/teachers/by_school/' + schoolId)
+  function hideModal() {
+    if (hasBootstrapModal) {
+      $('#editModal').modal('hide');
+      return;
+    }
+    const $modal = $('#editModal');
+    const $backdrop = $modal.data('backdrop');
+    $modal.removeClass('show in').attr('aria-hidden','true').removeAttr('aria-modal').hide();
+    if ($backdrop) {
+      $backdrop.removeClass('show in').hide();
+    }
+    $('body').removeClass('modal-open');
+  }
+
+  $('#formEdit').on('submit', function(e) { e.preventDefault(); });
+  $('[data-bs-dismiss="modal"]').on('click', function(e) {
+    e.preventDefault();
+    hideModal();
+  });
+
+  function loadTeachers() {
+    // 无学校字段：加载所有已审核教师
+    return fetch('/api/teachers/all_approved', { credentials: 'include' })
       .then(r => r.json()).then(res => {
         const $sel = $('#teacherId');
         $sel.empty();
@@ -130,9 +187,8 @@
   }
 
   function loadClasses() {
-    const schoolId = $('#schoolFilter').val();
-    const url = '/api/classes/list' + (schoolId? ('?school_id=' + schoolId) : '');
-    fetch(url).then(r => r.json()).then(res => {
+    const url = '/api/classes/list';
+    fetch(url, { credentials: 'include' }).then(r => r.json()).then(res => {
       if (res.code !== 1) { alert(res.msg || '加载失败'); return; }
       renderTable(res.data||[]);
     });
@@ -144,15 +200,14 @@
       const badge = item.status == 1 ? '<span class="badge bg-success">启用</span>' : '<span class="badge bg-secondary">禁用</span>';
       const tr = `
         <tr>
-          <td>${item.school_name||''}</td>
           <td>${item.class_name||''}</td>
-          <td>${item.class_code||''}</td>
           <td>${item.grade||''}</td>
           <td>${item.teacher_name||''}</td>
           <td>${item.student_count||0}</td>
           <td>${badge}</td>
           <td>
             <button class="btn btn-sm btn-outline-primary me-1" onclick="editClass(${item.id})">编辑</button>
+            <button class="btn btn-sm btn-outline-danger" onclick="deleteClass(${item.id})">删除</button>
           </td>
         </tr>`;
       $tbl.append(tr);
@@ -160,48 +215,53 @@
   }
 
   window.editClass = function(id) {
-    Promise.all([
-      new Promise(resolve => loadSchools('schoolId', resolve)),
-      fetch('/api/classes/detail/' + id).then(r => r.json())
-    ]).then(([_ , res]) => {
+    fetch('/api/classes/detail/' + id, { credentials: 'include' }).then(r => r.json()).then(res => {
       if (res.code !== 1) { alert(res.msg || '加载失败'); return; }
       const d = res.data;
       $('#classId').val(d.id);
-      $('#schoolId').val(d.school_id);
       $('#className').val(d.class_name);
       $('#classCode').val(d.class_code||'');
       $('#grade').val(d.grade||'');
       $('#description').val(d.description||'');
       $('#status').val(d.status||1);
-      
-      loadTeachers(d.school_id).then(() => {
-        if (d.teacher_id) $('#teacherId').val(d.teacher_id);
+      loadTeachers().then(() => {
+        if (d.teacher_id) $('#teacherId').val(String(d.teacher_id));
       });
-      
-      editModal = new bootstrap.Modal(document.getElementById('editModal'));
-      editModal.show();
+
+      showModal();
+    });
+  }
+
+  window.deleteClass = function(id) {
+    if (!id) return;
+    if (!confirm('确定要删除该班级吗？')) return;
+    fetch('/api/classes/delete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ id })
+    }).then(r => r.json()).then(res => {
+      if (res.code === 1) {
+        loadClasses();
+      } else {
+        alert(res.msg || '删除失败');
+      }
     });
   }
 
   $('#btnAdd').on('click', () => {
     $('#formEdit')[0].reset();
     $('#classId').val('');
-    loadSchools('schoolId');
+    $('#status').val('1');
     $('#teacherId').empty().append('<option value="">未指定</option>');
-    editModal = new bootstrap.Modal(document.getElementById('editModal'));
-    editModal.show();
-  });
-
-  $('#schoolId').on('change', function() {
-    const sid = $(this).val();
-    if (sid) loadTeachers(sid);
-    else $('#teacherId').empty().append('<option value="">未指定</option>');
+    loadTeachers();
+    showModal();
   });
 
   $('#btnSave').on('click', () => {
-    const id = $('#classId').val();
+  const id = $('#classId').val();
+    
     const payload = {
-      school_id: parseInt($('#schoolId').val()||'0',10),
       class_name: $('#className').val().trim(),
       class_code: $('#classCode').val().trim(),
       grade: $('#grade').val().trim(),
@@ -209,14 +269,19 @@
       description: $('#description').val().trim(),
       status: parseInt($('#status').val()||'1',10)
     };
-    if (!payload.school_id || !payload.class_name) { alert('请选择学校并填写班级名称'); return; }
+    if (!payload.class_name) { alert('请填写班级名称'); return; }
 
     const url = id ? '/api/classes/update' : '/api/classes/add';
     if (id) payload.id = parseInt(id,10);
 
-    fetch(url, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) })
+    fetch(url, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      credentials: 'include',
+      body: JSON.stringify(payload)
+    })
       .then(r => r.json()).then(res => {
-        if (res.code === 1) { editModal.hide(); loadClasses(); }
+        if (res.code === 1) { hideModal(); loadClasses(); }
         else { alert(res.msg || '保存失败'); }
       });
   });
@@ -224,7 +289,7 @@
   $('#btnRefresh').on('click', loadClasses);
 
   // 初始化
-  loadSchools('schoolFilter', loadClasses);
+  loadClasses();
 })();
 </script>
 {% endblock %}

@@ -28,13 +28,13 @@
                                 <tr role="row">
                                     <th class="sorting_asc" role="columnheader" tabindex="0" aria-controls="example" rowspan="1" colspan="1" aria-sort="ascending" aria-label="Rendering engine: activate to sort column descending" style="width: 146px;">编号</th>
                                     <th class="sorting" role="columnheader" tabindex="0" aria-controls="example" rowspan="1" colspan="1" aria-label="Browser: activate to sort column ascending" style="width: 215px;">用户名称</th>
-                                    <th class="sorting" role="columnheader" tabindex="0" aria-controls="example" rowspan="1" colspan="1" aria-label="Platform(s): activate to sort column ascending" style="width: 215px;">用户密码</th>
-                                    <th class="sorting" role="columnheader" tabindex="0" aria-controls="example" rowspan="1" colspan="1" aria-label="Engine version: activate to sort column ascending" style="width: 250px;">学生姓名</th>
-                                    <th class="sorting" role="columnheader" tabindex="0" aria-controls="example" rowspan="1" colspan="1" aria-label="Engine version: activate to sort column ascending" style="width: 250px;">学生班级</th>
-                                    <th class="sorting" role="columnheader" tabindex="0" aria-controls="example" rowspan="1" colspan="1" aria-label="CSS grade: activate to sort column ascending" style="width: 215px;">身份证号</th>
+                                    <th class="sorting" role="columnheader" tabindex="0" aria-controls="example" rowspan="1" colspan="1" aria-label="Engine version: activate to sort column ascending" style="width: 200px;">学生姓名</th>
+                                    <th class="sorting" role="columnheader" tabindex="0" aria-controls="example" rowspan="1" colspan="1" aria-label="Engine version: activate to sort column ascending" style="width: 220px;">所属学校</th>
+                                    <th class="sorting" role="columnheader" tabindex="0" aria-controls="example" rowspan="1" colspan="1" aria-label="Engine version: activate to sort column ascending" style="width: 220px;">所属班级</th>
+                                    <th class="sorting" role="columnheader" tabindex="0" aria-controls="example" rowspan="1" colspan="1" aria-label="CSS grade: activate to sort column ascending" style="width: 215px;">学号</th>
                                     <th class="sorting" role="columnheader" tabindex="0" aria-controls="example" rowspan="1" colspan="1" aria-label="CSS grade: activate to sort column ascending" style="width: 215px;">手机号码</th>
-                                    <th class="sorting" role="columnheader" tabindex="0" aria-controls="example" rowspan="1" colspan="1" aria-label="CSS grade: activate to sort column ascending" style="width: 300px;">家庭住址</th>
-                                    <th class="sorting" role="columnheader" tabindex="0" aria-controls="example" rowspan="1" colspan="1" aria-label="CSS grade: activate to sort column ascending" style="width: 450px;">操作</th>
+                                    <th class="sorting" role="columnheader" tabindex="0" aria-controls="example" rowspan="1" colspan="1" aria-label="CSS grade: activate to sort column ascending" style="width: 200px;">状态</th>
+                                    <th class="sorting" role="columnheader" tabindex="0" aria-controls="example" rowspan="1" colspan="1" aria-label="CSS grade: activate to sort column ascending" style="width: 320px;">操作</th>
                                 </tr>
                             </thead>
 
@@ -50,13 +50,13 @@
                                         <div class="catalog__text"> {{item.UserName}}</div>
                                     </td>
                                     <td class=" ">
-                                        <div class="catalog__text"> {{item.PWD}} </div>
-                                    </td>
-                                    <td class=" ">
                                         <div class="catalog__text"> {{item.Name}} </div>
                                     </td>
                                     <td class=" ">
-                                        <div class="catalog__text"> {{item.Classes}} </div>
+                                        <div class="catalog__text"> {{ item.SchoolName or '未设置' }} </div>
+                                    </td>
+                                    <td class=" ">
+                                        <div class="catalog__text"> {{ item.ClassName or '未分配' }} </div>
                                     </td>
                                     <td class=" ">
                                         <div class="catalog__text"> {{item.Card}} </div>
@@ -65,7 +65,13 @@
                                         <div class="catalog__text"> {{item.Phone}} </div>
                                     </td>
                                     <td class=" ">
-                                        <div class="catalog__text"> {{item.Address}} </div>
+                                        <div class="catalog__text">
+                                            {% if item.Status == 1 %}
+                                                <span class="badge bg-success">在读</span>
+                                            {% else %}
+                                                <span class="badge bg-secondary">停用</span>
+                                            {% endif %}
+                                        </div>
                                     </td>
 
                                     <td>

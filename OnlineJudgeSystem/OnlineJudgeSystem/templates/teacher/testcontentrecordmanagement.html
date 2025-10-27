@@ -1,4 +1,5 @@
 ﻿{% extends "layout.html" %}
+{% set has_classes = classes|length > 0 %}
 
 {% block content %}
 
@@ -32,8 +33,46 @@
                     <div id="example_wrapper" class="dataTables_wrapper form-inline" role="grid">
                         <div class="row">
                             <div class="span12">
+                                <div style="margin-left:20px; display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:10px;">
+                                    <form action="/testcontentrecordmanagement" method="get" class="form-inline" style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+                                        <label for="classFilter" style="margin:0;">班级筛选</label>
+                                        <select id="classFilter" name="classId" class="form-control" style="min-width:360px; width:auto; max-width:90vw; padding-right:3em; white-space:nowrap; height:34px; line-height:34px; box-sizing:border-box; padding-top:4px; padding-bottom:4px;">
+                                            {% if has_classes %}
+                                            <option value="">全部班级</option>
+                                            {% for cls in classes %}
+                                            <option value="{{cls.Id}}" title="{{cls.ClassName}}" {% if selected_class_id == cls.Id|string %}selected{% endif %}>{{cls.ClassName}}</option>
+                                            {% endfor %}
+                                            {% else %}
+                                            <option value="">暂无可导出的班级</option>
+                                            {% endif %}
+                                        </select>
+                                        <label for="testFilter" style="margin:0;">试卷筛选</label>
+                                        <select id="testFilter" name="testId" class="form-control" style="min-width:260px; width:auto; max-width:70vw; padding-right:2.5em; height:34px; line-height:34px; box-sizing:border-box;" {% if not selected_class_id %}disabled="disabled"{% endif %}>
+                                            {% if not selected_class_id %}
+                                            <option value="">请先选择班级</option>
+                                            {% else %}
+                                                {% if tests and tests|length > 0 %}
+                                                <option value="">请选择试卷</option>
+                                                {% for t in tests %}
+                                                <option value="{{t.Id}}" title="{{t.TestName}}" {% if selected_test_id == t.Id|string %}selected{% endif %}>{{t.TestName}}</option>
+                                                {% endfor %}
+                                                {% else %}
+                                                <option value="">该班级暂无可导出的试卷</option>
+                                                {% endif %}
+                                            {% endif %}
+                                        </select>
+                                        <button type="submit" class="btn btn-primary">筛选</button>
+                                    </form>
+                                    <button type="button" class="btn btn-success" id="exportExcelBtn" data-has-classes="{{ 1 if has_classes else 0 }}">导出Excel</button>
+                                    {% if not has_classes %}
+                                    <span style="color:#d9534f;">暂无可导出的班级，请在“班级管理”页面绑定班级后再试。</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="span12">
                                 <div style="margin-left:20px" class="dataTables_filter">
                                     <form action="/testcontentrecordmanagementseacher" method="post">
+                                        <input type="hidden" name="classId" value="{{selected_class_id}}" />
                                         <div id="datetimepicker" style="width:300px;height:auto;float:left;display:inline">
                                             做题开始时间
                                             <input readonly name="startTime" value="" id="dateInput" data-format="MM/dd/yyyy HH:mm:ss PP" class="form-control" type="text" />
@@ -112,8 +151,8 @@
                             <div class="span6">
                                 <div class="dataTables_paginate paging_bootstrap pagination">
                                     <ul>
-                                        <li class="prev"><a href="/testcontentrecordmanagement?typePage=pre&currentPage={{pre}}">← 上一页</a></li>
-                                        <li class="next"><a href="/testcontentrecordmanagement?typePage=next&currentPage={{next}}">下一页 → </a></li>
+                                        <li class="prev"><a href="/testcontentrecordmanagement?typePage=pre&currentPage={{pre}}{% if selected_class_id %}&classId={{selected_class_id}}{% endif %}">← 上一页</a></li>
+                                        <li class="next"><a href="/testcontentrecordmanagement?typePage=next&currentPage={{next}}{% if selected_class_id %}&classId={{selected_class_id}}{% endif %}">下一页 → </a></li>
                                     </ul>
                                 </div>
                             </div>
@@ -189,6 +228,9 @@
 
 <script>
     $(function () {
+    var $exportBtn = $('#exportExcelBtn');
+    var hasClassesData = $exportBtn.data('has-classes');
+    var hasClasses = hasClassesData === 1 || hasClassesData === '1';
         $('#datetimepicker').datetimepicker({
             language: 'cn',
             pick12HourFormat: true
@@ -208,6 +250,19 @@
             $('#btnShowDate1').click();
         });
 
+    $exportBtn.on('click', function () {
+            var classId = $('#classFilter').val();
+            var testId = $('#testFilter').val();
+            if (!classId) {
+                alert('请先选择班级');
+                return;
+            }
+            if (!testId) {
+                alert('请在选择班级后，再选择试卷导出该场考试');
+                return;
+            }
+            window.location.href = '/testcontentrecordmanagementexport?classId=' + encodeURIComponent(classId) + '&testId=' + encodeURIComponent(testId);
+        });
 
         $('#seacher').click(function () {
             if ($('#dateInput').val == '') {
@@ -220,6 +275,53 @@
             }
         });
 
+        // 自动按内容扩展“班级筛选”下拉框宽度，确保文字显示完整
+        function measureTextWidth(text, $ref) {
+            var $tmp = $('<span/>').text(text).css({
+                visibility: 'hidden',
+                position: 'absolute',
+                whiteSpace: 'nowrap',
+                fontFamily: $ref.css('font-family'),
+                fontSize: $ref.css('font-size'),
+                fontWeight: $ref.css('font-weight'),
+                letterSpacing: $ref.css('letter-spacing')
+            }).appendTo(document.body);
+            var w = $tmp.width();
+            $tmp.remove();
+            return w;
+        }
+
+        function autosizeClassFilter() {
+            var $sel = $('#classFilter');
+            if ($sel.length === 0) return;
+
+            // 计算所有选项中最长的一项
+            var longest = '';
+            $sel.find('option').each(function () {
+                var t = $(this).text();
+                if (t.length > longest.length) longest = t;
+            });
+
+            var contentW = measureTextWidth(longest, $sel);
+            // 预留下拉箭头与左右内边距空间（Windows 浏览器下拉箭头较宽，适当增大余量）
+            var extra = 120; // px
+            var minW = 360; // 与行内 min-width 保持一致
+            var maxW = Math.min(900, Math.floor($(window).width() * 0.9));
+            var finalW = Math.max(minW, Math.min(contentW + extra, maxW));
+            $sel.css('width', finalW + 'px');
+        }
+
+        // 初始化、自适应与窗口变化时都触发
+        autosizeClassFilter();
+        $('#classFilter').on('change', function(){
+            autosizeClassFilter();
+            // 选择班级后，重新加载页面以刷新试卷列表
+            var classId = $('#classFilter').val() || '';
+            var url = '/testcontentrecordmanagement';
+            if (classId) url += '?classId=' + encodeURIComponent(classId);
+            window.location.href = url;
+        });
+        $(window).on('resize', autosizeClassFilter);
     });
 
 

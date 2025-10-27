@@ -29,7 +29,7 @@
                             </div>
 
                             <div class="control-group">
-                                <label class="control-label" for="typeahead">题库结果： </label>
+                                <label class="control-label" for="typeahead">题库结果（可留空，推荐用测试用例）： </label>
                                 <div class="controls">
                                     <input style="width:100%" name="result" type="text" class="span6" id="typeahead" data-provide="typeahead" data-items="4" data-source="[&quot;Alabama&quot;,&quot;Alaska&quot;,&quot;Arizona&quot;,&quot;Arkansas&quot;,&quot;California&quot;,&quot;Colorado&quot;,&quot;Connecticut&quot;,&quot;Delaware&quot;,&quot;Florida&quot;,&quot;Georgia&quot;,&quot;Hawaii&quot;,&quot;Idaho&quot;,&quot;Illinois&quot;,&quot;Indiana&quot;,&quot;Iowa&quot;,&quot;Kansas&quot;,&quot;Kentucky&quot;,&quot;Louisiana&quot;,&quot;Maine&quot;,&quot;Maryland&quot;,&quot;Massachusetts&quot;,&quot;Michigan&quot;,&quot;Minnesota&quot;,&quot;Mississippi&quot;,&quot;Missouri&quot;,&quot;Montana&quot;,&quot;Nebraska&quot;,&quot;Nevada&quot;,&quot;New Hampshire&quot;,&quot;New Jersey&quot;,&quot;New Mexico&quot;,&quot;New York&quot;,&quot;North Dakota&quot;,&quot;North Carolina&quot;,&quot;Ohio&quot;,&quot;Oklahoma&quot;,&quot;Oregon&quot;,&quot;Pennsylvania&quot;,&quot;Rhode Island&quot;,&quot;South Carolina&quot;,&quot;South Dakota&quot;,&quot;Tennessee&quot;,&quot;Texas&quot;,&quot;Utah&quot;,&quot;Vermont&quot;,&quot;Virginia&quot;,&quot;Washington&quot;,&quot;West Virginia&quot;,&quot;Wisconsin&quot;,&quot;Wyoming&quot;]">
                                 </div>
@@ -42,11 +42,130 @@
                                 </div>
                             </div>                    
 
+                            <!-- 测试用例管理（在新增页也可一起配置） -->
+                            <hr/>
+                            <h3>测试用例管理</h3>
+                            <p style="color:#666;">说明：公开样例用于“运行代码”反馈，私有用例用于交卷评分（按用例分值累计）。</p>
+
+                            <div id="cases-toolbar" style="margin:10px 0;">
+                                <button id="btn-add-public" type="button" class="btn">添加样例用例</button>
+                                <button id="btn-add-private" type="button" class="btn">添加实际用例</button>
+                            </div>
+
+                            <div style="overflow:auto; margin-bottom:10px;">
+                                <h4>样例用例（公开）</h4>
+                                <table id="cases-table-public" class="table table-bordered" style="min-width:980px;">
+                                    <thead>
+                                        <tr>
+                                            <th style="width:60px;">顺序</th>
+                                            <th style="width:80px;">启用</th>
+                                            <th style="width:90px;">分值</th>
+                                            <th>输入 (stdin)</th>
+                                            <th>期望输出</th>
+                                            <th style="width:160px;">操作</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody></tbody>
+                                </table>
+                            </div>
+
+                            <div style="overflow:auto;">
+                                <h4>实际用例（私有）</h4>
+                                <table id="cases-table-private" class="table table-bordered" style="min-width:980px;">
+                                    <thead>
+                                        <tr>
+                                            <th style="width:60px;">顺序</th>
+                                            <th style="width:80px;">启用</th>
+                                            <th style="width:90px;">分值</th>
+                                            <th>输入 (stdin)</th>
+                                            <th>期望输出</th>
+                                            <th style="width:160px;">操作</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody></tbody>
+                                </table>
+                            </div>
+
+                            <!-- 隐藏字段用于提交用例JSON -->
+                            <input type="hidden" name="cases_json" id="cases_json" value=""/>
+
                             <div class="form-actions">
                                 <button type="submit" class="btn btn-primary">添加题库</button>
                             </div>
                         </fieldset>
                     </form>
+
+                    <script>
+                        (function(){
+                            var form = document.querySelector('form[action="/testcontentmanagementadd"]');
+                            var tbodyPub = document.querySelector('#cases-table-public tbody');
+                            var tbodyPri = document.querySelector('#cases-table-private tbody');
+
+                            function makeRow(item){
+                                var tr = document.createElement('tr');
+                                tr.innerHTML = ''+
+                                    '<td class="case-order"><input type="number" class="input-mini" value="'+ (item.case_order ?? 0) +'" /></td>'+
+                                    '<td class="case-enabled"><input type="checkbox" '+ (parseInt(item.enabled||1) ? 'checked' : '') +'></td>'+
+                                    '<td class="case-points"><input type="number" min="0" class="input-mini" value="'+ (item.points ?? 1) +'" /></td>'+
+                                    '<td class="case-input"><textarea rows="3" style="width:100%;resize:vertical;">'+ (item.input || '') +'</textarea></td>'+
+                                    '<td class="case-expected"><textarea rows="3" style="width:100%;resize:vertical;">'+ (item.expected_output || '') +'</textarea></td>'+
+                                    '<td>'+
+                                        '<button type="button" class="btn btn-small btn-up">上移</button> '+
+                                        '<button type="button" class="btn btn-small btn-down">下移</button> '+
+                                        '<button type="button" class="btn btn-small btn-danger btn-del">删除</button>'+
+                                    '</td>';
+                                tr.querySelector('.btn-del').addEventListener('click', function(){ tr.parentNode.removeChild(tr); fixOrders(); });
+                                tr.querySelector('.btn-up').addEventListener('click', function(){ var p=tr.previousElementSibling; if(p){ tr.parentNode.insertBefore(tr,p); fixOrders(); }});
+                                tr.querySelector('.btn-down').addEventListener('click', function(){ var n=tr.nextElementSibling; if(n){ tr.parentNode.insertBefore(n,tr); fixOrders(); }});
+                                return tr;
+                            }
+
+                            function fixOrders(){
+                                Array.prototype.forEach.call(tbody.children, function(tr, idx){
+                                    var orderInput = tr.querySelector('.case-order input');
+                                    if(orderInput){ orderInput.value = idx; }
+                                });
+                            }
+
+                            document.getElementById('btn-add-public').addEventListener('click', function(){
+                                tbodyPub.appendChild(makeRow({ is_public: 1, enabled: 1, points: 1, input: '', expected_output: '' }));
+                                fixOrders();
+                            });
+                            document.getElementById('btn-add-private').addEventListener('click', function(){
+                                tbodyPri.appendChild(makeRow({ is_public: 0, enabled: 1, points: 1, input: '', expected_output: '' }));
+                                fixOrders();
+                            });
+
+                            function gatherCases(){
+                                var cases = [];
+                                function collect(tb, isPublic){
+                                    var arr = [];
+                                    Array.prototype.forEach.call(tb.children, function(tr, idx){
+                                        arr.push({
+                                            case_order: parseInt(tr.querySelector('.case-order input').value || idx),
+                                            is_public: isPublic ? 1 : 0,
+                                            enabled: tr.querySelector('.case-enabled input').checked ? 1 : 0,
+                                            points: parseInt(tr.querySelector('.case-points input').value || 1),
+                                            input: tr.querySelector('.case-input textarea').value || '',
+                                            expected_output: tr.querySelector('.case-expected textarea').value || ''
+                                        });
+                                    });
+                                    return arr;
+                                }
+                                var pub = collect(tbodyPub, true);
+                                var pri = collect(tbodyPri, false);
+                                var cases = pub.concat(pri);
+                                cases.sort(function(a,b){ return (a.case_order||0)-(b.case_order||0); });
+                                cases.forEach(function(c,i){ c.case_order = i; });
+                                return cases;
+                            }
+
+                            form.addEventListener('submit', function(ev){
+                                var payload = { cases: gatherCases() };
+                                document.getElementById('cases_json').value = JSON.stringify(payload);
+                            });
+                        })();
+                    </script>
 
                 </div>
             </div>

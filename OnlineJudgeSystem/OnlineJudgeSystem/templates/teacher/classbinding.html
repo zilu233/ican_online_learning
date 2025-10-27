@@ -1,0 +1,108 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div style="margin-top:120px"></div>
+<div class="container">
+    <h2>班级管理</h2>
+    {% if message %}
+    <div class="alert alert-info">{{ message }}</div>
+    {% endif %}
+    <div class="well" style="margin-bottom:20px;">
+        {% set _name_raw = teacher_info.Name if teacher_info else '' %}
+        {% set teacher_name = _name_raw if (_name_raw and (_name_raw|string|trim|lower != 'none')) else (teacher_info.UserName if teacher_info else '') %}
+        <p><strong>当前老师：</strong>{{ teacher_name or '—' }}</p>
+        <p><strong>已关联班级数：</strong>{{ my_classes|length }} 个</p>
+        <p style="margin:0;">如需调整负责班级，可在下方进行绑定或解绑操作。</p>
+    </div>
+
+    <div class="block">
+        <div class="navbar navbar-inner block-header">
+            <div class="muted pull-left">我的班级</div>
+        </div>
+        <div class="block-content collapse in">
+            {% if my_classes %}
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>班级名称</th>
+                        <th style="width:120px;">操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for cls in my_classes %}
+                    <tr>
+                        <td>{{ cls.ClassName }}</td>
+                        <td>
+                            <form action="/teacher/classes/unbind" method="post" style="display:inline-block;">
+                                <input type="hidden" name="class_id" value="{{ cls.Id }}" />
+                                <button class="btn btn-warning" type="submit" onclick="return confirm('确定解除该班级的负责老师关系吗？');">解除绑定</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p class="muted" style="padding:10px;">尚未绑定任何班级，请在下方选择班级进行绑定。</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="block" style="margin-top:20px;">
+        <div class="navbar navbar-inner block-header">
+            <div class="muted pull-left">可绑定班级</div>
+        </div>
+        <div class="block-content collapse in">
+            {% if available_classes %}
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>班级名称</th>
+                        <th style="width:120px;">操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for cls in available_classes %}
+                    <tr>
+                        <td>{{ cls.ClassName }}</td>
+                        <td>
+                            <form action="/teacher/classes/bind" method="post" style="display:inline-block;">
+                                <input type="hidden" name="class_id" value="{{ cls.Id }}" />
+                                <button class="btn btn-success" type="submit">绑定</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p class="muted" style="padding:10px;">暂无空闲班级可绑定，请联系管理员创建班级或解除其他老师绑定。</p>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if occupied_classes %}
+    <div class="block" style="margin-top:20px;">
+        <div class="navbar navbar-inner block-header">
+            <div class="muted pull-left">其他老师正在负责的班级</div>
+        </div>
+        <div class="block-content collapse in">
+            <table class="table table-condensed">
+                <thead>
+                    <tr>
+                        <th>班级名称</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for cls in occupied_classes %}
+                    <tr>
+                        <td>{{ cls.ClassName }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

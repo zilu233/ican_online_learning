@@ -56,6 +56,163 @@
                         </fieldset>
                     </form>
 
+                    <!-- 测试用例管理（LeetCode 风格） -->
+                    <hr/>
+                    <h3 id="cases">测试用例管理</h3>
+                    <p style="color:#666;">说明：将用例分为两类——样例用例（公开，供学生“运行代码”展示）与实际用例（私有，交卷评分用）。若题目无输入，输入留空即可。</p>
+
+                    <div id="cases-toolbar" style="margin:10px 8px;">
+                        <button id="btn-add-public" type="button" class="btn">添加样例用例</button>
+                        <button id="btn-add-private" type="button" class="btn">添加实际用例</button>
+                        <button id="btn-refresh-cases" type="button" class="btn">从服务器刷新</button>
+                        <button id="btn-save-cases" type="button" class="btn btn-primary">保存全部</button>
+                    </div>
+
+                    <div style="overflow:auto; margin-bottom:10px;">
+                        <h4>样例用例（公开）</h4>
+                        <table id="cases-table-public" class="table table-bordered" style="min-width:980px;">
+                            <thead>
+                                <tr>
+                                    <th style="width:60px;">顺序</th>
+                                    <th style="width:80px;">启用</th>
+                                    <th style="width:90px;">分值</th>
+                                    <th>输入 (stdin)</th>
+                                    <th>期望输出</th>
+                                    <th style="width:160px;">操作</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+
+                    <div style="overflow:auto;">
+                        <h4>实际用例（私有）</h4>
+                        <table id="cases-table-private" class="table table-bordered" style="min-width:980px;">
+                            <thead>
+                                <tr>
+                                    <th style="width:60px;">顺序</th>
+                                    <th style="width:80px;">启用</th>
+                                    <th style="width:90px;">分值</th>
+                                    <th>输入 (stdin)</th>
+                                    <th>期望输出</th>
+                                    <th style="width:160px;">操作</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+
+                    <script>
+                        (function(){
+                            var testContentId = {{ data.Id | tojson }};
+                            var tbodyPub = document.querySelector('#cases-table-public tbody');
+                            var tbodyPri = document.querySelector('#cases-table-private tbody');
+
+                            function makeRow(item){
+                                var tr = document.createElement('tr');
+                                tr.innerHTML = ''+
+                                    '<td class="case-order"><input type="number" class="input-mini" value="'+ (item.case_order ?? 0) +'" /></td>'+
+                                    '<td class="case-enabled"><input type="checkbox" '+ (parseInt(item.enabled||1) ? 'checked' : '') +'></td>'+
+                                    '<td class="case-points"><input type="number" min="0" class="input-mini" value="'+ (item.points ?? 1) +'" /></td>'+
+                                    '<td class="case-input"><textarea rows="3" style="width:100%;resize:vertical;">'+ (item.input || '') +'</textarea></td>'+
+                                    '<td class="case-expected"><textarea rows="3" style="width:100%;resize:vertical;">'+ (item.expected_output || '') +'</textarea></td>'+
+                                    '<td>'+
+                                        '<button type="button" class="btn btn-small btn-up">上移</button> '+
+                                        '<button type="button" class="btn btn-small btn-down">下移</button> '+
+                                        '<button type="button" class="btn btn-small btn-danger btn-del">删除</button>'+
+                                    '</td>';
+                                // 事件
+                                tr.querySelector('.btn-del').addEventListener('click', function(){ tr.parentNode.removeChild(tr); fixOrders(); });
+                                tr.querySelector('.btn-up').addEventListener('click', function(){
+                                    var prev = tr.previousElementSibling; if(prev){ tr.parentNode.insertBefore(tr, prev); fixOrders(); }
+                                });
+                                tr.querySelector('.btn-down').addEventListener('click', function(){
+                                    var next = tr.nextElementSibling; if(next){ tr.parentNode.insertBefore(next, tr); fixOrders(); }
+                                });
+                                return tr;
+                            }
+
+                            function fixOrders(){
+                                [tbodyPub, tbodyPri].forEach(function(tb){
+                                    Array.prototype.forEach.call(tb.children, function(tr, idx){
+                                        var orderInput = tr.querySelector('.case-order input');
+                                        if(orderInput){ orderInput.value = idx; }
+                                    });
+                                });
+                            }
+
+                            function loadCases(){
+                                fetch('/teacher/testcases?test_content_id=' + encodeURIComponent(testContentId))
+                                    .then(function(r){return r.json();})
+                                    .then(function(json){
+                                        if(!json || json.code !== 1){ alert('加载用例失败'); return; }
+                                        tbodyPub.innerHTML = '';
+                                        tbodyPri.innerHTML = '';
+                                        (json.data || []).forEach(function(item){
+                                            var tr = makeRow(item);
+                                            if (parseInt(item.is_public||0) === 1) tbodyPub.appendChild(tr); else tbodyPri.appendChild(tr);
+                                        });
+                                        fixOrders();
+                                    })
+                                    .catch(function(){ alert('网络错误：加载用例失败'); });
+                            }
+
+                            function gatherCases(){
+                                function collect(tb, isPublic){
+                                    var arr = [];
+                                    Array.prototype.forEach.call(tb.children, function(tr, idx){
+                                        arr.push({
+                                            case_order: parseInt(tr.querySelector('.case-order input').value || idx),
+                                            is_public: isPublic ? 1 : 0,
+                                            enabled: tr.querySelector('.case-enabled input').checked ? 1 : 0,
+                                            points: parseInt(tr.querySelector('.case-points input').value || 1),
+                                            input: (tr.querySelector('.case-input textarea').value || ''),
+                                            expected_output: (tr.querySelector('.case-expected textarea').value || '')
+                                        });
+                                    });
+                                    return arr;
+                                }
+                                var pub = collect(tbodyPub, true);
+                                var pri = collect(tbodyPri, false);
+                                var cases = pub.concat(pri);
+                                // 按 case_order 排序并重排 0..n-1
+                                cases.sort(function(a,b){ return (a.case_order||0) - (b.case_order||0); });
+                                cases.forEach(function(c,i){ c.case_order = i; });
+                                return cases;
+                            }
+
+                            function saveCases(){
+                                var payload = { test_content_id: testContentId, cases: gatherCases() };
+                                fetch('/teacher/testcases/save', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify(payload)
+                                }).then(function(r){ return r.json(); })
+                                  .then(function(json){
+                                      if(json && json.code === 1){
+                                          alert('保存成功，共 '+ (json.count||0) +' 条用例');
+                                          loadCases();
+                                      } else {
+                                          alert('保存失败');
+                                      }
+                                  })
+                                  .catch(function(){ alert('网络错误：保存失败'); });
+                            }
+                            document.getElementById('btn-add-public').addEventListener('click', function(){
+                                tbodyPub.appendChild(makeRow({ case_order: tbodyPub.children.length, is_public: 1, enabled: 1, points: 1, input: '', expected_output: '' }));
+                                fixOrders();
+                            });
+                            document.getElementById('btn-add-private').addEventListener('click', function(){
+                                tbodyPri.appendChild(makeRow({ case_order: tbodyPri.children.length, is_public: 0, enabled: 1, points: 1, input: '', expected_output: '' }));
+                                fixOrders();
+                            });
+                            document.getElementById('btn-refresh-cases').addEventListener('click', loadCases);
+                            document.getElementById('btn-save-cases').addEventListener('click', saveCases);
+
+                            // 初始化加载
+                            loadCases();
+                        })();
+                    </script>
 
                 </div>
             </div>

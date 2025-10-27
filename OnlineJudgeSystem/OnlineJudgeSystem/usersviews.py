@@ -9,6 +9,7 @@ from OnlineJudgeSystem import app
 from OnlineJudgeSystem.common.ai_client import get_client, AIClientError
 from OnlineJudgeSystem.model.TestContent import TestContentServer, TestContent
 from OnlineJudgeSystem.common.CodeExecutor import CodeExecutor
+from OnlineJudgeSystem.model.TestCase import TestCaseServer
 import json
 import random
 import math 
@@ -184,18 +185,59 @@ def testover():
     # 计算结果
     sums = 0
 
-    datas = TestRecordAnswerServer().select_sql_all_test_record_id(test_record_id)
-    for item in datas:
-        sums += item.Grade
+    # 1) 编程题按“私有实际用例”逐题评分（没有配置则退回到单一Result对比）
+    content_answers = TestRecordAnswerServer().select_sql_all_test_record_id(test_record_id)
+    executor = CodeExecutor(timeout=5)
+    for item in content_answers:
+        # 获取题目信息
+        testContent = TestContentServer().select_sql_by_id(item.TestContentId)
+        # 获取私有用例
+        try:
+            private_cases = TestCaseServer().select_private_by_content(item.TestContentId)
+        except Exception:
+            private_cases = []
 
+        question_grade = 0
+        if private_cases and item.AnswerContent:
+            total_points = sum([c.Points or 1 for c in private_cases]) or 0
+            cases_payload = [
+                {
+                    'id': c.Id,
+                    'input': c.Input or '',
+                    'expected': c.ExpectedOutput or '',
+                    'points': c.Points or 1,
+                } for c in private_cases
+            ]
+            multi = executor.execute_cases(item.AnswerContent, cases_payload)
+            passed_points = sum([cr['points'] for cr in multi.get('case_results', []) if cr.get('success')])
+            # 比例分：按题目总分与用例总分比例换算
+            if total_points > 0:
+                question_grade = int(round((testContent.Grade or 0) * (passed_points / total_points)))
+            else:
+                question_grade = 0
+        else:
+            # 兼容旧题：没有配置私有用例，用单一Result比对
+            if item.AnswerContent:
+                single = executor.execute_code(item.AnswerContent, testContent.Result)
+                question_grade = testContent.Grade if single.get('success') else 0
+            else:
+                question_grade = 0
+
+        # 更新该题得分
+        item.Grade = question_grade
+        TestRecordAnswerServer().update_sql(item)
+        sums += question_grade
+
+    # 2) 选择题按原有记录得分汇总
     datas = TestRecordAnswerSelectServer().select_sql_all_test_record_id(test_record_id)
     for item in datas:
         sums += item.Grade
 
+    # 更新总分
     testRecord = TestRecordServer().select_sql_by_id(test_record_id)
     testRecord.SumGrade = sums
     TestRecordServer().update_sql(testRecord)
-    return jsonify({"message": "Answers received successfully"})
+    return jsonify({"message": "Answers received successfully", "sum": sums})
 
 
 '''
@@ -346,6 +388,70 @@ def runcode():
 
     # 使用CodeExecutor执行代码
     executor = CodeExecutor(timeout=5)
+
+    # 优先：如果存在“公开样例用例”，则逐个运行这些用例并返回每例结果，不修改评分（评分在交卷时按私有用例结算）
+    try:
+        public_cases = TestCaseServer().select_public_by_content(testContentId)
+    except Exception:
+        public_cases = []
+
+    if public_cases:
+        cases_payload = [
+            {
+                'id': c.Id,
+                'input': c.Input or '',
+                'expected': c.ExpectedOutput or '',
+                'points': c.Points or 1
+            } for c in public_cases
+        ]
+        multi = executor.execute_cases(pycode, cases_payload)
+
+        # 更新数据库：仅保存代码，不改分
+        testRecordAnswerServer = TestRecordAnswerServer()
+        # 读取当前记录，保留原Grade
+        current_rec = testRecordAnswerServer.select_sql_by_id(testAnswerId)
+        keep_grade = getattr(current_rec, 'Grade', 0) if current_rec else 0
+        testRecordAnswer = TestRecordAnswer()
+        testRecordAnswer.Id = testAnswerId
+        testRecordAnswer.AnswerContent = pycode
+        testRecordAnswer.Grade = keep_grade
+        # 不改变分数，仅更新代码内容
+        testRecordAnswerServer.update_sql(testRecordAnswer)
+
+        overall_msg = f"样例用例通过 {multi['passed']}/{multi['total']}" if multi['total'] else "未配置样例用例"
+
+        # 考试模式：隐藏细节
+        try:
+            test_id = session.get('current_test_id') or request.form.get('test_id')
+            if test_id:
+                test_obj = TestServer().select_sql_by_id(test_id)
+                test_type = getattr(test_obj, 'TestType', 'homework')
+            else:
+                test_type = 'homework'
+        except Exception:
+            test_type = 'homework'
+
+        if test_type == 'exam':
+            minimal = {
+                'success': multi.get('all_passed', False),
+                'code': 1 if multi.get('all_passed') else 0,
+                'msg': overall_msg,
+            }
+            return jsonify(minimal)
+
+        # 作业模式：返回详细的每例结果
+        return jsonify({
+            'success': multi.get('all_passed', False),
+            'code': 1 if multi.get('all_passed') else 0,
+            'msg': overall_msg,
+            'cases_summary': {
+                'passed': multi.get('passed', 0),
+                'total': multi.get('total', 0),
+            },
+            'case_results': multi.get('case_results', []),
+        })
+
+    # 兼容：若未配置公开样例，用老逻辑按单一标准输出对比
     result = executor.execute_code(pycode, testContent.Result)
     
     # 更新数据库中的做题信息
@@ -361,7 +467,29 @@ def runcode():
     
     testRecordAnswerServer.update_sql(testRecordAnswer)
     
-    # 返回详细的JSON结果
+    # Based on test type (homework/exam) decide whether to include detailed hints
+    try:
+        test_id = session.get('current_test_id') or request.form.get('test_id')
+        if test_id:
+            test_obj = TestServer().select_sql_by_id(test_id)
+            test_type = getattr(test_obj, 'TestType', 'homework')
+        else:
+            test_type = 'homework'
+    except Exception:
+        # If we cannot determine test type, default to conservative behavior: treat as exam? keep homework for now
+        test_type = 'homework'
+
+    # If this is an exam, remove detailed hints from the response to avoid leaking information
+    if test_type == 'exam':
+        minimal = {
+            'success': result.get('success', False),
+            'code': result.get('code', 0),
+            'msg': result.get('msg', ''),
+        }
+        # Do not include output or traceback or error details in exam mode
+        return jsonify(minimal)
+
+    # For homework (default) return full details
     return jsonify(result)
 
 
@@ -422,6 +550,33 @@ def ask_model():
         return jsonify({'success': False, 'error': error_info, 'suggestion': suggestion}), 502
 
     return jsonify({'success': True, 'answer': resp.get('answer'), 'raw': resp.get('raw')})
+
+
+@app.route('/public_cases', methods=['GET'])
+def get_public_cases():
+    """学生端获取某题目的公开样例用例。
+    入参: test_content_id
+    返回: {code:1, data:[{index, input, expected}]}
+    """
+    try:
+        test_content_id = int(request.args.get('test_content_id'))
+    except Exception:
+        return jsonify({'code': 0, 'error': 'missing_or_invalid_test_content_id'}), 400
+
+    try:
+        cases = TestCaseServer().select_public_by_content(test_content_id)
+    except Exception:
+        cases = []
+
+    data = []
+    for idx, c in enumerate(cases, 1):
+        data.append({
+            'index': idx,
+            'input': c.Input or '',
+            'expected': c.ExpectedOutput or ''
+        })
+
+    return jsonify({'code': 1, 'data': data})
 
 
 

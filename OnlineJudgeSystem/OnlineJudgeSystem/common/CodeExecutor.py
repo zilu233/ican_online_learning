@@ -19,11 +19,12 @@ class CodeExecutor:
         """
         self.timeout = timeout
     
-    def execute_code(self, code, expected_output=None):
+    def execute_code(self, code, expected_output=None, input_text=None):
         """
         执行Python代码并返回详细的结果信息
         :param code: 要执行的Python代码
         :param expected_output: 期望的输出结果
+        :param input_text: 提供给程序的标准输入（可选）
         :return: 包含执行结果的字典
         """
         result = {
@@ -55,12 +56,22 @@ class CodeExecutor:
                 f"python {file_path}",
                 shell=True,
                 stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE
+                stderr=subprocess.PIPE,
+                stdin=subprocess.PIPE if input_text is not None else None
             )
             
             try:
                 # 等待执行完成或超时
-                stdout, stderr = proc.communicate(timeout=self.timeout)
+                # 传入stdin（如果有）
+                if input_text is not None:
+                    if not isinstance(input_text, (bytes, bytearray)):
+                        input_bytes = str(input_text).encode('utf-8', errors='ignore')
+                    else:
+                        input_bytes = input_text
+                else:
+                    input_bytes = None
+
+                stdout, stderr = proc.communicate(input=input_bytes, timeout=self.timeout)
                 stdout_text = stdout.decode('utf-8', errors='ignore').strip()
                 stderr_text = stderr.decode('utf-8', errors='ignore').strip()
                 
@@ -121,6 +132,46 @@ class CodeExecutor:
                 pass
         
         return result
+
+    def execute_cases(self, code, cases):
+        """
+        执行多组测试用例。
+        :param code: 学生提交的代码
+        :param cases: 测试用例列表，每项为字典 {"input": str, "expected": str, "points": int, "id": int}
+        :return: {"all_passed": bool, "passed": int, "total": int, "case_results": [...]} 每个case结果含 success/output/错误等
+        """
+        results = []
+        passed = 0
+        total = len(cases)
+        for idx, case in enumerate(cases, 1):
+            input_text = case.get('input') or ''
+            expected = case.get('expected') or ''
+            r = self.execute_code(code, expected_output=expected, input_text=input_text)
+            case_res = {
+                'index': idx,
+                'id': case.get('id'),
+                'input': input_text,
+                'expected': expected,
+                'output': r.get('output', ''),
+                'success': bool(r.get('success')),
+                'code': r.get('code', 0),
+                'msg': r.get('msg', ''),
+                'error_type': r.get('error_type', ''),
+                'error_detail': r.get('error_detail', ''),
+                'traceback': r.get('traceback', ''),
+                'error_line': r.get('error_line', ''),
+                'points': case.get('points', 1),
+            }
+            if case_res['success']:
+                passed += 1
+            results.append(case_res)
+
+        return {
+            'all_passed': passed == total and total > 0,
+            'passed': passed,
+            'total': total,
+            'case_results': results,
+        }
     
     def _parse_error(self, error_text):
         """

@@ -1,0 +1,225 @@
+{% extends 'adminLayout.html' %}
+{% block title %}教师管理{% endblock %}
+{% block content %}
+<div class="container-fluid py-3">
+  <style>
+    /* 深色主题下增强“编辑教师”模态表单的可读性（与班级管理一致） */
+    #editTeacherModal .modal-content {
+      background-color: #1f1f26; /* 与后台深色主题一致 */
+      color: #fff;
+      border: 1px solid rgba(255,255,255,0.12);
+    }
+    #editTeacherModal .modal-header,
+    #editTeacherModal .modal-footer {
+      border-color: rgba(255,255,255,0.12);
+    }
+    #editTeacherModal .modal-title { color: #fff; }
+    #editTeacherModal .btn-close { filter: invert(1); opacity: .8; }
+    #editTeacherModal .btn-close:hover { opacity: 1; }
+
+    #editTeacherModal .form-label { color: #fff !important; }
+    #editTeacherModal .form-control,
+    #editTeacherModal .form-select {
+      color: #fff !important;
+      background-color: #1f1f26 !important;
+      border-color: rgba(255,255,255,0.25) !important;
+    }
+    #editTeacherModal .form-control::placeholder {
+      color: rgba(255,255,255,0.7) !important;
+    }
+    #editTeacherModal .form-text { color: rgba(255,255,255,0.6); }
+  </style>
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="mb-0">教师管理</h4>
+    <div>
+      <button class="btn btn-secondary" id="btnRefresh" type="button">刷新</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-body">
+      <div class="table-responsive">
+        <table class="table table-striped table-hover align-middle" id="tblTeachers">
+          <thead>
+            <tr>
+              <th style="width: 280px;">教师姓名</th>
+              <th>所属班级</th>
+              <th style="width: 180px;">操作</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 编辑教师 模态框 -->
+<div class="modal fade" id="editTeacherModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">编辑教师</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="editTeacherId" />
+        <div class="mb-3">
+          <label class="form-label">姓名</label>
+          <input type="text" class="form-control" id="editName" placeholder="请输入教师姓名" />
+        </div>
+        <div class="mb-3">
+          <label class="form-label">联系方式</label>
+          <input type="text" class="form-control" id="editPhone" placeholder="电话/手机" />
+        </div>
+        <div class="mb-3">
+          <label class="form-label">工号</label>
+          <input type="text" class="form-control" id="editCard" placeholder="工号" />
+        </div>
+        <div class="mb-3">
+          <label class="form-label">地址</label>
+          <input type="text" class="form-control" id="editAddress" placeholder="联系地址" />
+        </div>
+        <!-- 提示：所属班级请在“班级管理”中设置班级的任课老师，以保持数据一致 -->
+        <div class="form-text text-muted">提示：所属班级请在“班级管理”中设置任课老师。</div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+        <button type="button" class="btn btn-primary" id="btnSaveTeacher">保存</button>
+      </div>
+    </div>
+  </div>
+  </div>
+
+<script>
+(function(){
+  const hasBootstrapModal = typeof $.fn !== 'undefined' && typeof $.fn.modal === 'function';
+  function showTeacherModal(){
+    if (hasBootstrapModal) { $('#editTeacherModal').modal('show'); return; }
+    const $modal = $('#editTeacherModal');
+    if (!$modal.parent().is('body')) { $modal.appendTo('body'); }
+    if (!$modal.data('backdrop')) {
+      const $backdrop = $('<div class="modal-backdrop fade" style="display:none;"></div>');
+      $modal.after($backdrop);
+      $modal.data('backdrop', $backdrop);
+    }
+    const $backdrop = $modal.data('backdrop');
+    $('body').addClass('modal-open');
+    $backdrop.show().addClass('show');
+    $modal.attr('aria-modal','true').removeAttr('aria-hidden').css({display:'block', zIndex:2000}).addClass('show');
+  }
+  function hideTeacherModal(){
+    if (hasBootstrapModal) { $('#editTeacherModal').modal('hide'); return; }
+    const $modal = $('#editTeacherModal');
+    const $backdrop = $modal.data('backdrop');
+    $modal.removeClass('show').css('display','none').attr('aria-hidden','true').removeAttr('aria-modal');
+    $('body').removeClass('modal-open');
+    if ($backdrop) { $backdrop.removeClass('show').hide(); }
+  }
+  function displayName(t){
+    return (t.name && t.name.trim()) || t.username || ("教师#"+t.id);
+  }
+  function displayClasses(t){
+    if (!t.classes) return '—';
+    return t.classes;
+  }
+  function loadTeachers(){
+    return fetch('/api/teachers/all_approved', { credentials: 'include' })
+      .then(r => r.json())
+      .then(json => {
+        if (!json || json.code !== 1) throw new Error(json && json.msg || '加载失败');
+        const list = json.data || [];
+        const tbody = document.querySelector('#tblTeachers tbody');
+        tbody.innerHTML = '';
+        if (!list.length){
+          const tr = document.createElement('tr');
+          const td = document.createElement('td');
+          td.colSpan = 3;
+          td.textContent = '暂无教师';
+          td.className = 'text-center text-muted';
+          tr.appendChild(td);
+          tbody.appendChild(tr);
+          return;
+        }
+        list.forEach(t => {
+          const tr = document.createElement('tr');
+          const tdName = document.createElement('td');
+          tdName.textContent = displayName(t);
+          const tdClasses = document.createElement('td');
+          tdClasses.textContent = displayClasses(t);
+          const tdOps = document.createElement('td');
+          tdOps.innerHTML = `
+            <button class="btn btn-sm btn-primary me-2 btn-edit">编辑</button>
+            <button class="btn btn-sm btn-danger btn-del">删除</button>
+          `;
+          // 事件绑定
+          tdOps.querySelector('.btn-edit').addEventListener('click', () => openEditModal(t));
+          tdOps.querySelector('.btn-del').addEventListener('click', () => deleteTeacher(t));
+
+          tr.appendChild(tdName);
+          tr.appendChild(tdClasses);
+          tr.appendChild(tdOps);
+          tbody.appendChild(tr);
+        });
+      })
+      .catch(err => {
+        console.error('[教师管理] 加载失败:', err);
+        const tbody = document.querySelector('#tblTeachers tbody');
+        tbody.innerHTML = '<tr><td colspan="3" class="text-center text-danger">加载失败</td></tr>';
+      });
+  }
+
+  function openEditModal(t){
+    document.getElementById('editTeacherId').value = t.id;
+    document.getElementById('editName').value = t.name || '';
+    document.getElementById('editPhone').value = t.phone || '';
+    document.getElementById('editCard').value = t.card || '';
+    document.getElementById('editAddress').value = t.address || '';
+    showTeacherModal();
+  }
+
+  function saveTeacher(){
+    const id = document.getElementById('editTeacherId').value;
+    const payload = {
+      name: document.getElementById('editName').value.trim(),
+      phone: document.getElementById('editPhone').value.trim(),
+      card: document.getElementById('editCard').value.trim(),
+      address: document.getElementById('editAddress').value.trim()
+    };
+    fetch(`/api/teachers/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify(payload)
+    }).then(r=>r.json()).then(json=>{
+      if(json && json.code===1){
+        hideTeacherModal();
+        loadTeachers();
+      }else{
+        alert(json && json.msg || '保存失败');
+      }
+    }).catch(e=>{
+      alert('保存失败: '+e);
+    });
+  }
+
+  function deleteTeacher(t){
+    if(!confirm(`确认删除教师 “${displayName(t)}” 吗？\n删除后会解除其与所有班级的绑定。`)) return;
+    fetch(`/api/teachers/${t.id}`, {
+      method: 'DELETE',
+      credentials: 'include'
+    }).then(r=>r.json()).then(json=>{
+      if(json && json.code===1){
+        loadTeachers();
+      }else{
+        alert(json && json.msg || '删除失败');
+      }
+    }).catch(e=>alert('删除失败: '+e));
+  }
+
+  document.getElementById('btnRefresh').addEventListener('click', loadTeachers);
+  document.getElementById('btnSaveTeacher').addEventListener('click', saveTeacher);
+  loadTeachers();
+})();
+</script>
+{% endblock %}

@@ -12,12 +12,29 @@ from OnlineJudgeSystem.model.Teachers import TeachersServer
 from OnlineJudgeSystem.model.Students import StudentsServer
 
 
+def _is_admin_logged_in() -> bool:
+    """Return True if current session belongs to an authenticated admin."""
+    if session.get('logged_type') == 'admin':
+        return True
+    return 'adminuser' in session
+
+
+def _sync_teacher_assignments(teacher_id: int):
+    """Recalculate teacher-class mapping for the given teacher."""
+    if not teacher_id:
+        return
+    classes = ClassesServer.select_sql_by_teacher(int(teacher_id))
+    class_names = ",".join([c.ClassName for c in classes])
+    school_id = classes[0].SchoolId if classes else None
+    TeachersServer().update_classes_and_school(int(teacher_id), class_names, school_id)
+
+
 # ============ 学校管理 ============
 
 @app.route('/admin/schools')
 def admin_schools():
     """学校列表页面"""
-    if 'adminuser' not in session:
+    if not _is_admin_logged_in():
         return render_template('login.html')
     return render_template('admin/schools.html')
 
@@ -25,7 +42,7 @@ def admin_schools():
 @app.route('/api/schools/list', methods=['GET'])
 def api_schools_list():
     """获取学校列表API"""
-    if 'adminuser' not in session:
+    if not _is_admin_logged_in():
         return jsonify({'code': 0, 'msg': '未登录'})
     
     status = request.args.get('status', None)
@@ -62,7 +79,7 @@ def api_schools_list():
 @app.route('/api/schools/add', methods=['POST'])
 def api_schools_add():
     """添加学校API"""
-    if 'adminuser' not in session:
+    if not _is_admin_logged_in():
         return jsonify({'code': 0, 'msg': '未登录'})
     
     data = request.get_json()
@@ -90,7 +107,7 @@ def api_schools_add():
 @app.route('/api/schools/update', methods=['POST'])
 def api_schools_update():
     """更新学校API"""
-    if 'adminuser' not in session:
+    if not _is_admin_logged_in():
         return jsonify({'code': 0, 'msg': '未登录'})
     
     data = request.get_json()
@@ -119,7 +136,7 @@ def api_schools_update():
 @app.route('/api/schools/toggle_status', methods=['POST'])
 def api_schools_toggle_status():
     """启用/禁用学校API"""
-    if 'adminuser' not in session:
+    if not _is_admin_logged_in():
         return jsonify({'code': 0, 'msg': '未登录'})
     
     data = request.get_json()
@@ -134,7 +151,7 @@ def api_schools_toggle_status():
 @app.route('/api/schools/detail/<int:school_id>', methods=['GET'])
 def api_schools_detail(school_id):
     """获取学校详情API"""
-    if 'adminuser' not in session:
+    if not _is_admin_logged_in():
         return jsonify({'code': 0, 'msg': '未登录'})
     
     school = SchoolsServer.select_sql_by_id(school_id)
@@ -169,7 +186,7 @@ def api_schools_detail(school_id):
 @app.route('/admin/classes')
 def admin_classes():
     """班级列表页面"""
-    if 'adminuser' not in session:
+    if not _is_admin_logged_in():
         return render_template('login.html')
     return render_template('admin/classes.html')
 
@@ -177,26 +194,31 @@ def admin_classes():
 @app.route('/api/classes/list', methods=['GET'])
 def api_classes_list():
     """获取班级列表API"""
-    if 'adminuser' not in session:
+    if not _is_admin_logged_in():
         return jsonify({'code': 0, 'msg': '未登录'})
     
     school_id = request.args.get('school_id', None)
     if school_id:
         school_id = int(school_id)
-    
-    classes = ClassesServer.select_sql_all(school_id=school_id, status=1)
+    status = request.args.get('status', None)
+    if status in (None, ""):
+        status = None
+    else:
+        status = int(status)
+
+    classes = ClassesServer.select_sql_all(school_id=school_id, status=status)
     
     result = []
     for cls in classes:
         result.append({
             'id': cls.Id,
             'school_id': cls.SchoolId,
-            'school_name': cls.SchoolName if hasattr(cls, 'SchoolName') else '',
+            'school_name': getattr(cls, 'SchoolName', ''),
             'class_name': cls.ClassName,
             'class_code': cls.ClassCode,
             'grade': cls.Grade,
             'teacher_id': cls.TeacherId,
-            'teacher_name': cls.TeacherName if hasattr(cls, 'TeacherName') else '',
+            'teacher_name': getattr(cls, 'TeacherName', ''),
             'student_count': cls.StudentCount,
             'description': cls.Description,
             'status': cls.Status
@@ -208,7 +230,7 @@ def api_classes_list():
 @app.route('/api/classes/add', methods=['POST'])
 def api_classes_add():
     """添加班级API"""
-    if 'adminuser' not in session:
+    if not _is_admin_logged_in():
         return jsonify({'code': 0, 'msg': '未登录'})
     
     data = request.get_json()
@@ -224,9 +246,12 @@ def api_classes_add():
     cls.Grade = data.get('grade', '')
     cls.TeacherId = data.get('teacher_id', 0)
     cls.Description = data.get('description', '')
-    cls.Status = 1
+    cls.Status = data.get('status', 1)
     
     class_id = ClassesServer.insert_sql(cls)
+
+    if cls.TeacherId:
+        _sync_teacher_assignments(cls.TeacherId)
     
     return jsonify({'code': 1, 'msg': '添加成功', 'class_id': class_id})
 
@@ -234,7 +259,7 @@ def api_classes_add():
 @app.route('/api/classes/update', methods=['POST'])
 def api_classes_update():
     """更新班级API"""
-    if 'adminuser' not in session:
+    if not _is_admin_logged_in():
         return jsonify({'code': 0, 'msg': '未登录'})
     
     data = request.get_json()
@@ -243,6 +268,7 @@ def api_classes_update():
     if ClassesServer.check_name_exists(data['school_id'], data['class_name'], exclude_id=data['id']):
         return jsonify({'code': 0, 'msg': '该学校已存在同名班级'})
     
+    existing = ClassesServer.select_sql_by_id(data['id'])
     cls = Classes()
     cls.Id = data['id']
     cls.SchoolId = data['school_id']
@@ -254,14 +280,51 @@ def api_classes_update():
     cls.Status = data.get('status', 1)
     
     ClassesServer.update_sql(cls)
+
+    old_teacher = existing.TeacherId if existing else None
+    if old_teacher and old_teacher != cls.TeacherId:
+        _sync_teacher_assignments(old_teacher)
+    if cls.TeacherId:
+        _sync_teacher_assignments(cls.TeacherId)
     
     return jsonify({'code': 1, 'msg': '更新成功'})
+
+
+@app.route('/api/classes/delete', methods=['POST'])
+def api_classes_delete():
+    """删除班级API"""
+    if not _is_admin_logged_in():
+        return jsonify({'code': 0, 'msg': '未登录'})
+
+    data = request.get_json() or {}
+    try:
+        class_id = int(data.get('id', 0))
+    except (TypeError, ValueError):
+        class_id = 0
+
+    if not class_id:
+        return jsonify({'code': 0, 'msg': '参数错误'})
+
+    existing = ClassesServer.select_sql_by_id(class_id)
+    if not existing:
+        return jsonify({'code': 0, 'msg': '班级不存在'})
+
+    students = StudentsServer().select_sql_by_class(class_id)
+    if students:
+        return jsonify({'code': 0, 'msg': '班级下仍有学生，无法删除'})
+
+    ClassesServer.delete_sql(class_id)
+
+    if getattr(existing, 'TeacherId', 0):
+        _sync_teacher_assignments(existing.TeacherId)
+
+    return jsonify({'code': 1, 'msg': '删除成功'})
 
 
 @app.route('/api/classes/detail/<int:class_id>', methods=['GET'])
 def api_classes_detail(class_id):
     """获取班级详情API"""
-    if 'adminuser' not in session:
+    if not _is_admin_logged_in():
         return jsonify({'code': 0, 'msg': '未登录'})
     
     cls = ClassesServer.select_sql_by_id(class_id)
@@ -271,12 +334,12 @@ def api_classes_detail(class_id):
     result = {
         'id': cls.Id,
         'school_id': cls.SchoolId,
-        'school_name': cls.SchoolName if hasattr(cls, 'SchoolName') else '',
+        'school_name': getattr(cls, 'SchoolName', ''),
         'class_name': cls.ClassName,
         'class_code': cls.ClassCode,
         'grade': cls.Grade,
         'teacher_id': cls.TeacherId,
-        'teacher_name': cls.TeacherName if hasattr(cls, 'TeacherName') else '',
+        'teacher_name': getattr(cls, 'TeacherName', ''),
         'student_count': cls.StudentCount,
         'description': cls.Description,
         'status': cls.Status
@@ -305,7 +368,7 @@ def api_classes_by_school(school_id):
 @app.route('/api/classes/students/<int:class_id>', methods=['GET'])
 def api_classes_students(class_id):
     """获取班级学生列表API"""
-    if 'adminuser' not in session:
+    if not _is_admin_logged_in():
         return jsonify({'code': 0, 'msg': '未登录'})
     
     students = ClassesServer.get_students(class_id)
@@ -329,7 +392,7 @@ def api_classes_students(class_id):
 @app.route('/admin/teacher_approval')
 def admin_teacher_approval():
     """教师审核页面"""
-    if 'adminuser' not in session:
+    if not _is_admin_logged_in():
         return render_template('login.html')
     return render_template('admin/teacher_approval.html')
 
@@ -337,7 +400,7 @@ def admin_teacher_approval():
 @app.route('/api/teachers/pending', methods=['GET'])
 def api_teachers_pending():
     """获取待审核教师列表API"""
-    if 'adminuser' not in session:
+    if not _is_admin_logged_in():
         return jsonify({'code': 0, 'msg': '未登录'})
     
     school_id = request.args.get('school_id', None)
@@ -367,7 +430,7 @@ def api_teachers_pending():
 @app.route('/api/teachers/approve', methods=['POST'])
 def api_teachers_approve():
     """审核教师API"""
-    if 'adminuser' not in session:
+    if not _is_admin_logged_in():
         return jsonify({'code': 0, 'msg': '未登录'})
     
     data = request.get_json()
@@ -376,8 +439,18 @@ def api_teachers_approve():
     reason = data.get('reason', '')
     
     # 获取管理员ID
-    admin_user = session.get('adminuser')
-    admin_id = admin_user.Id if hasattr(admin_user, 'Id') else 0
+    admin_id = 0
+    logged_admin = session.get('logged_in')
+    if logged_admin:
+        try:
+            import json
+            admin_data = json.loads(logged_admin)
+            admin_id = int(admin_data.get('Id', 0))
+        except Exception:
+            admin_id = 0
+    elif 'adminuser' in session:
+        admin_user = session.get('adminuser')
+        admin_id = getattr(admin_user, 'Id', 0)
     
     server = TeachersServer()
     server.approve_teacher(teacher_id, admin_id, status, reason)
@@ -389,6 +462,8 @@ def api_teachers_approve():
 @app.route('/api/teachers/by_school/<int:school_id>', methods=['GET'])
 def api_teachers_by_school(school_id):
     """根据学校获取教师列表API（用于下拉框）"""
+    if not _is_admin_logged_in():
+        return jsonify({'code': 0, 'msg': '未登录'})
     server = TeachersServer()
     teachers = server.select_sql_by_school(school_id, approval_status=1)
     
@@ -406,7 +481,7 @@ def api_teachers_by_school(school_id):
 @app.route('/api/teachers/all_approved', methods=['GET'])
 def api_teachers_all_approved():
     """获取所有已审核通过的教师列表API"""
-    if 'adminuser' not in session:
+    if not _is_admin_logged_in():
         return jsonify({'code': 0, 'msg': '未登录'})
     
     school_id = request.args.get('school_id', None)
@@ -422,8 +497,8 @@ def api_teachers_all_approved():
             'id': teacher.Id,
             'username': teacher.UserName,
             'name': teacher.Name,
-            'school_id': teacher.SchoolId if hasattr(teacher, 'SchoolId') else None,
-            'school_name': teacher.SchoolName if hasattr(teacher, 'SchoolName') else '',
+            'school_id': getattr(teacher, 'SchoolId', None),
+            'school_name': getattr(teacher, 'SchoolName', ''),
             'card': teacher.Card,
             'phone': teacher.Phone,
             'address': teacher.Address
@@ -437,6 +512,8 @@ def api_teachers_all_approved():
 @app.route('/api/schools/all_active', methods=['GET'])
 def api_schools_all_active():
     """获取所有启用的学校列表API（用于下拉框）"""
+    if not _is_admin_logged_in():
+        return jsonify({'code': 0, 'msg': '未登录'})
     schools = SchoolsServer.select_sql_all(status=1)
     
     result = []
@@ -453,7 +530,7 @@ def api_schools_all_active():
 @app.route('/api/statistics/overview', methods=['GET'])
 def api_statistics_overview():
     """获取系统总体统计API"""
-    if 'adminuser' not in session:
+    if not _is_admin_logged_in():
         return jsonify({'code': 0, 'msg': '未登录'})
     
     from OnlineJudgeSystem.common.MySqlHelper import MySqlHelper

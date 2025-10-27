@@ -89,9 +89,12 @@ class TestContentServer(object):
 
         mysql.query("insert into Test_Content (`Content`,`Result`,`Grade`) values(\""+\
                     testContent.Content+"\", \""+testContent.Result+"\", \""+testContent.Grade+"\");", "")
+        # 获取自增ID
+        last_id = mysql.cursor.lastrowid if hasattr(mysql.cursor, 'lastrowid') else None
         #Must user commit in crud
         mysql.connent.commit()
-        mysql.end()  
+        mysql.end()
+        return last_id
 
 
     def update_sql(self,testContent):

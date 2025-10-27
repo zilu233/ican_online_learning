@@ -197,6 +197,10 @@
 
                     <h4><p id="grade">题目分数：</p></h4>
                     <h3><p style="width:100%;background-color:lightblue" id="content">题目内容</p></h3>
+                    <div id="public-cases-panel" style="margin:10px 0 15px 0; display:block;">
+                        <div style="font-weight:bold;">样例用例（公开，仅供参考）</div>
+                        <div id="public-cases" style="border:1px solid #eee; padding:8px; background:#fafafa; font-size:13px; white-space:pre-wrap; overflow:auto;"></div>
+                    </div>
                     <p style="width:100%;background-color:orangered;" id="error"> error </p>
 
                 </div>
@@ -379,6 +383,38 @@
                     alert("Error");
                 }
             });
+
+            // 加载公开样例用例
+            $.ajax({
+                type: "GET",
+                dataType: "json",
+                url: "/public_cases?test_content_id=" + encodeURIComponent(testId),
+                success: function (resp) {
+                    var html = '';
+                    if (resp && resp.code === 1 && Array.isArray(resp.data) && resp.data.length) {
+                        html += '<table style="width:100%;border-collapse:collapse;">'
+                             + '<thead><tr>'
+                             + '<th style="border:1px solid #ddd;padding:6px;width:60px;">#</th>'
+                             + '<th style="border:1px solid #ddd;padding:6px;">输入 (前200字符)</th>'
+                             + '<th style="border:1px solid #ddd;padding:6px;">期望输出 (前200字符)</th>'
+                             + '</tr></thead><tbody>';
+                        resp.data.forEach(function(c){
+                            html += '<tr>'
+                                  + '<td style="border:1px solid #ddd;padding:6px;">' + (c.index||'') + '</td>'
+                                  + '<td style="border:1px solid #ddd;padding:6px;white-space:pre-wrap;">' + ((c.input||'').toString().slice(0,200)) + '</td>'
+                                  + '<td style="border:1px solid #ddd;padding:6px;white-space:pre-wrap;">' + ((c.expected||'').toString().slice(0,200)) + '</td>'
+                                  + '</tr>';
+                        });
+                        html += '</tbody></table>';
+                    } else {
+                        html = '<em>暂无公开样例用例</em>';
+                    }
+                    $('#public-cases').html(html);
+                },
+                error: function(){
+                    $('#public-cases').html('<em>样例用例加载失败</em>');
+                }
+            });
         });
 
 
@@ -404,10 +440,35 @@
                     // 创建结果显示区域
                     var resultHtml = '<div style="padding: 15px; margin: 10px 0; border-radius: 5px; border: 2px solid;">';
                     
+                    // 如果是样例用例运行，后端会返回 cases_summary 与 case_results
+                    var hasCases = result && result.case_results && Array.isArray(result.case_results);
+
                     if (result.code == 1) {
                         // 成功
                         resultHtml += '<h4 style="color: #28a745; margin: 0 0 10px 0;">✅ ' + result.msg + '</h4>';
-                        if (result.output) {
+                        if (hasCases && window.CURRENT_TEST_TYPE !== 'exam') {
+                            // 展示每个样例用例结果
+                            resultHtml += '<div style="margin:8px 0;">样例通过：' + (result.cases_summary ? (result.cases_summary.passed + '/' + result.cases_summary.total) : '') + '</div>';
+                            resultHtml += '<table style="width:100%;border-collapse:collapse;font-size:13px;">'
+                                         + '<thead><tr>'
+                                         + '<th style="border:1px solid #ddd;padding:6px;">#</th>'
+                                         + '<th style="border:1px solid #ddd;padding:6px;">输入</th>'
+                                         + '<th style="border:1px solid #ddd;padding:6px;">期望输出</th>'
+                                         + '<th style="border:1px solid #ddd;padding:6px;">实际输出</th>'
+                                         + '<th style="border:1px solid #ddd;padding:6px;">结果</th>'
+                                         + '</tr></thead><tbody>';
+                            result.case_results.forEach(function (c) {
+                                var ok = c.success ? '✅ 通过' : '❌ 未通过';
+                                resultHtml += '<tr>'
+                                            + '<td style="border:1px solid #ddd;padding:6px;">' + c.index + '</td>'
+                                            + '<td style="border:1px solid #ddd;padding:6px;white-space:pre-wrap;">' + (c.input || '').toString().slice(0,200) + '</td>'
+                                            + '<td style="border:1px solid #ddd;padding:6px;white-space:pre-wrap;">' + (c.expected || '').toString().slice(0,200) + '</td>'
+                                            + '<td style="border:1px solid #ddd;padding:6px;white-space:pre-wrap;">' + (c.output || '').toString().slice(0,200) + '</td>'
+                                            + '<td style="border:1px solid #ddd;padding:6px;">' + ok + '</td>'
+                                            + '</tr>';
+                            });
+                            resultHtml += '</tbody></table>';
+                        } else if (window.CURRENT_TEST_TYPE !== 'exam' && result.output) {
                             resultHtml += '<p style="margin: 5px 0;"><strong>程序输出：</strong></p>';
                             resultHtml += '<pre style="background: #f8f9fa; padding: 10px; border-radius: 3px; overflow-x: auto;">' + 
                                          result.output + '</pre>';
@@ -418,40 +479,73 @@
                         resultHtml += '<h4 style="color: #dc3545; margin: 0 0 10px 0;">❌ ' + result.msg + '</h4>';
                         
                         // 显示错误类型
-                        if (result.error_type) {
-                            resultHtml += '<p style="margin: 5px 0;"><strong>错误类型：</strong> ' + 
-                                         '<span style="color: #dc3545; font-family: monospace;">' + 
-                                         result.error_type + '</span></p>';
-                        }
-                        
-                        // 显示错误行号
-                        if (result.error_line) {
-                            resultHtml += '<p style="margin: 5px 0;"><strong>错误位置：</strong> ' + 
-                                         result.error_line + '</p>';
-                        }
-                        
-                        // 显示错误详情
-                        if (result.error_detail) {
-                            resultHtml += '<p style="margin: 5px 0;"><strong>错误详情：</strong></p>';
-                            resultHtml += '<div style="background: #f8d7da; padding: 10px; border-radius: 3px; ' +
-                                         'color: #721c24; white-space: pre-wrap; font-family: monospace;">' + 
-                                         result.error_detail + '</div>';
-                        }
-                        
-                        // 显示程序输出（如果有）
-                        if (result.output) {
-                            resultHtml += '<p style="margin: 10px 0 5px 0;"><strong>程序输出：</strong></p>';
-                            resultHtml += '<pre style="background: #f8f9fa; padding: 10px; border-radius: 3px; overflow-x: auto;">' + 
-                                         result.output + '</pre>';
-                        }
-                        
-                        // 显示完整的错误追踪（如果有）
-                        if (result.traceback) {
-                            resultHtml += '<details style="margin-top: 10px;">';
-                            resultHtml += '<summary style="cursor: pointer; color: #007bff; font-weight: bold;">查看完整错误信息</summary>';
-                            resultHtml += '<pre style="background: #f1f1f1; padding: 10px; margin-top: 5px; border-radius: 3px; ' +
-                                         'overflow-x: auto; font-size: 12px;">' + result.traceback + '</pre>';
-                            resultHtml += '</details>';
+                        if (window.CURRENT_TEST_TYPE !== 'exam') {
+                            if (hasCases) {
+                                // 展示每个样例用例结果（失败时也展示）
+                                resultHtml += '<div style="margin:8px 0;">样例通过：' + (result.cases_summary ? (result.cases_summary.passed + '/' + result.cases_summary.total) : '') + '</div>';
+                                resultHtml += '<table style="width:100%;border-collapse:collapse;font-size:13px;">'
+                                             + '<thead><tr>'
+                                             + '<th style="border:1px solid #ddd;padding:6px;">#</th>'
+                                             + '<th style="border:1px solid #ddd;padding:6px;">输入</th>'
+                                             + '<th style="border:1px solid #ddd;padding:6px;">期望输出</th>'
+                                             + '<th style="border:1px solid #ddd;padding:6px;">实际输出/错误</th>'
+                                             + '<th style="border:1px solid #ddd;padding:6px;">结果</th>'
+                                             + '</tr></thead><tbody>';
+                                result.case_results.forEach(function (c) {
+                                    var ok = c.success ? '✅ 通过' : '❌ 未通过';
+                                    // 失败优先展示 msg（包含中文错误解释），再降级到 error_detail，再到原始输出
+                                    var outOrErr = c.success
+                                        ? (c.output || '')
+                                        : (((c.msg && c.msg.trim()) || c.error_detail || c.output || '') + (c.traceback ? ('\n' + c.traceback) : ''));
+                                    resultHtml += '<tr>'
+                                                + '<td style="border:1px solid #ddd;padding:6px;">' + c.index + '</td>'
+                                                + '<td style="border:1px solid #ddd;padding:6px;white-space:pre-wrap;">' + (c.input || '').toString().slice(0,200) + '</td>'
+                                                + '<td style="border:1px solid #ddd;padding:6px;white-space:pre-wrap;">' + (c.expected || '').toString().slice(0,200) + '</td>'
+                                                + '<td style="border:1px solid #ddd;padding:6px;white-space:pre-wrap;">' + (outOrErr || '').toString().slice(0,400) + '</td>'
+                                                + '<td style="border:1px solid #ddd;padding:6px;">' + ok + '</td>'
+                                                + '</tr>';
+                                });
+                                resultHtml += '</tbody></table>';
+                            }
+                            // 显示错误类型
+                            if (result.error_type) {
+                                resultHtml += '<p style="margin: 5px 0;"><strong>错误类型：</strong> ' + 
+                                             '<span style="color: #dc3545; font-family: monospace;">' + 
+                                             result.error_type + '</span></p>';
+                            }
+                            
+                            // 显示错误行号
+                            if (result.error_line) {
+                                resultHtml += '<p style="margin: 5px 0;"><strong>错误位置：</strong> ' + 
+                                             result.error_line + '</p>';
+                            }
+                            
+                            // 显示错误详情
+                            if (result.error_detail) {
+                                resultHtml += '<p style="margin: 5px 0;"><strong>错误详情：</strong></p>';
+                                resultHtml += '<div style="background: #f8d7da; padding: 10px; border-radius: 3px; ' +
+                                             'color: #721c24; white-space: pre-wrap; font-family: monospace;">' + 
+                                             result.error_detail + '</div>';
+                            }
+                            
+                            // 显示程序输出（如果有）
+                            if (result.output) {
+                                resultHtml += '<p style="margin: 10px 0 5px 0;"><strong>程序输出：</strong></p>';
+                                resultHtml += '<pre style="background: #f8f9fa; padding: 10px; border-radius: 3px; overflow-x: auto;">' + 
+                                             result.output + '</pre>';
+                            }
+                            
+                            // 显示完整的错误追踪（如果有）
+                            if (result.traceback) {
+                                resultHtml += '<details style="margin-top: 10px;">';
+                                resultHtml += '<summary style="cursor: pointer; color: #007bff; font-weight: bold;">查看完整错误信息</summary>';
+                                resultHtml += '<pre style="background: #f1f1f1; padding: 10px; margin-top: 5px; border-radius: 3px; ' +
+                                             'overflow-x: auto; font-size: 12px;">' + result.traceback + '</pre>';
+                                resultHtml += '</details>';
+                            }
+                        } else {
+                            // In exam mode, show minimal message only
+                            resultHtml += '<p>考试模式：运行结果已记录，详细错误信息已隐藏。</p>';
                         }
                         
                         $('#run-result').css("border-color", "#dc3545");

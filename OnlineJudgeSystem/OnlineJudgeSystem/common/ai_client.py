@@ -115,7 +115,12 @@ class AIClient:
             if self.api_key:
                 client_kwargs['api_key'] = self.api_key
             if base_url:
-                client_kwargs['base_url'] = base_url.rstrip('/')
+                # OpenAI SDK expects base_url that already includes '/v1'
+                # If user configured host without path, append '/v1'
+                normalized = base_url.rstrip('/')
+                if not normalized.endswith('/v1'):
+                    normalized = normalized + '/v1'
+                client_kwargs['base_url'] = normalized
 
             client = OpenAI(**client_kwargs)
 
@@ -186,6 +191,8 @@ class AIClient:
             if not parsed.path or parsed.path == '/':
                 # target the canonical chat completions path
                 self._requests_target = self.endpoint.rstrip('/') + '/v1/chat/completions'
+                # Since we are explicitly targeting chat completions, force chat-style payload
+                is_chat_endpoint = True
             else:
                 self._requests_target = self.endpoint
         except Exception:

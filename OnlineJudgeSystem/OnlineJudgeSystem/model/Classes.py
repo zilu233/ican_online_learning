@@ -29,6 +29,10 @@ class ClassesServer:
     """班级服务类 - 数据访问层"""
 
     @staticmethod
+    def _escape(value: str) -> str:
+        return (value or "").replace("'", "''")
+
+    @staticmethod
     def _row_to_class(row):
         cls = Classes()
         cls.Id = row[0]
@@ -111,8 +115,8 @@ class ClassesServer:
         sql = f"""
         INSERT INTO classes (school_id, class_name, class_code, grade,
                              teacher_id, description, status)
-        VALUES ({int(cls.SchoolId)}, '{cls.ClassName}', '{cls.ClassCode}',
-                '{cls.Grade}', {teacher_id_str}, '{cls.Description}', {int(cls.Status)})
+        VALUES ({int(cls.SchoolId)}, '{ClassesServer._escape(cls.ClassName)}', '{ClassesServer._escape(cls.ClassCode)}',
+                '{ClassesServer._escape(cls.Grade)}', {teacher_id_str}, '{ClassesServer._escape(cls.Description)}', {int(cls.Status)})
         """
         db = MySqlHelper()
         db.query(sql, "")
@@ -127,11 +131,11 @@ class ClassesServer:
         sql = f"""
         UPDATE classes
         SET school_id = {int(cls.SchoolId)},
-            class_name = '{cls.ClassName}',
-            class_code = '{cls.ClassCode}',
-            grade = '{cls.Grade}',
+            class_name = '{ClassesServer._escape(cls.ClassName)}',
+            class_code = '{ClassesServer._escape(cls.ClassCode)}',
+            grade = '{ClassesServer._escape(cls.Grade)}',
             teacher_id = {teacher_id_str},
-            description = '{cls.Description}',
+            description = '{ClassesServer._escape(cls.Description)}',
             status = {int(cls.Status)}
         WHERE id = {int(cls.Id)}
         """
