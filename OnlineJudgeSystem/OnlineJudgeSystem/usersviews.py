@@ -263,11 +263,14 @@ def mytestcontentrecordmanagement():
     data_list = obj.show()
     sum_page = math.ceil(len(datas) / per_page)
 
-    # 为每条做题记录补充用户信息
+    # 为每条做题记录补充用户信息（将原先显示手机号的位置改为显示学号，即 UserName）
     for item in data_list:
         item.UserName = temps.UserName
         item.Name = temps.Name
-        item.Phone = temps.Phone
+        # 将原先用于显示手机号的字段改为学号：优先使用学生卡号(Card)（学号），若无则回退到 UserName
+        item.Phone = getattr(temps, 'Card', '') or getattr(temps, 'UserName', '')
+        # 同步在记录对象上设置 Card 字段，便于模板直接读取 {{ item.Card }}
+        item.Card = getattr(temps, 'Card', '') or getattr(temps, 'UserName', '')
         # 展示班级，不再展示住址
         item.ClassName = getattr(temps, 'ClassName', '')
         item.Classes = getattr(temps, 'Classes', '')
@@ -389,12 +392,71 @@ def runcode():
     # 使用CodeExecutor执行代码
     executor = CodeExecutor(timeout=5)
 
+    # 是否为提交评分请求（如果前端发送 submit_for_grade=1，则用私有用例对当前题目评分并保存分数）
+    submit_for_grade = request.form.get('submit_for_grade')
+
     # 优先：如果存在“公开样例用例”，则逐个运行这些用例并返回每例结果，不修改评分（评分在交卷时按私有用例结算）
     try:
         public_cases = TestCaseServer().select_public_by_content(testContentId)
     except Exception:
         public_cases = []
 
+    # 如果是“提交并评分”的请求，优先使用私有用例进行评分（不受公开样例存在与否影响）
+    if submit_for_grade and submit_for_grade in ('1', 'true', 'True'):
+        # 执行私有用例并更新该题分数（与 /testover 的单题逻辑一致）
+        try:
+            private_cases = TestCaseServer().select_private_by_content(testContentId)
+        except Exception:
+            private_cases = []
+
+        question_grade = 0
+        case_results = []
+        if private_cases and pycode:
+            total_points = sum([c.Points or 1 for c in private_cases]) or 0
+            cases_payload = [
+                {
+                    'id': c.Id,
+                    'input': c.Input or '',
+                    'expected': c.ExpectedOutput or '',
+                    'points': c.Points or 1,
+                } for c in private_cases
+            ]
+            multi = executor.execute_cases(pycode, cases_payload)
+            passed_points = sum([cr['points'] for cr in multi.get('case_results', []) if cr.get('success')])
+            case_results = multi.get('case_results', [])
+            if total_points > 0:
+                question_grade = int(round((testContent.Grade or 0) * (passed_points / total_points)))
+            else:
+                question_grade = 0
+        else:
+            # 退回兼容旧逻辑：单一Result对比
+            if pycode:
+                single = executor.execute_code(pycode, testContent.Result)
+                case_results = [ { 'index': 1, 'input': '', 'expected': testContent.Result, 'output': single.get('output',''), 'success': single.get('success', False), 'msg': single.get('msg','') } ]
+                question_grade = testContent.Grade if single.get('success') else 0
+            else:
+                question_grade = 0
+
+        # 更新数据库中的代码与分数
+        try:
+            testRecordAnswerServer = TestRecordAnswerServer()
+            testRecordAnswer = TestRecordAnswer()
+            testRecordAnswer.Id = testAnswerId
+            testRecordAnswer.AnswerContent = pycode
+            testRecordAnswer.Grade = question_grade
+            testRecordAnswerServer.update_sql(testRecordAnswer)
+        except Exception:
+            app.logger.exception('runcode: failed to save graded answer for testAnswerId %s', testAnswerId)
+
+        return jsonify({
+            'success': True,
+            'code': 1,
+            'msg': f'已提交并按实际用例评分：得分 {question_grade}',
+            'grade': question_grade,
+            'case_results': case_results,
+        })
+
+    # 否则，原有行为：如果存在“公开样例用例”，则逐个运行这些用例并返回每例结果，不修改评分（评分在交卷时按私有用例结算）
     if public_cases:
         cases_payload = [
             {

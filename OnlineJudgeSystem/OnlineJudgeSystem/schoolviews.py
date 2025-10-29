@@ -482,7 +482,8 @@ def api_classes_students(class_id):
             'username': student.UserName,
             'name': student.Name,
             'card': student.Card,
-            'phone': student.Phone,
+            # 前端展示学号而非手机号：优先使用 Card（学号），若无则回退到 UserName
+            'phone': getattr(student, 'Card', '') or getattr(student, 'UserName', ''),
             'status': getattr(student, 'Status', 1)
         })
 

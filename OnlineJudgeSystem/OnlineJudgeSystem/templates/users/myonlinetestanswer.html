@@ -19,8 +19,9 @@
     }
 
         .question p {
-            font-weight: bold;
-        }
+                font-weight: bold;
+                font-size: 16px; /* increase question title font size */
+            }
 
     label {
         display: block;
@@ -52,7 +53,14 @@
         white-space: pre-wrap; /* 保留换行并自动换行 */
         word-break: break-word; /* 在必要时断词换行 */
         display: block;
-        padding: 8px;
+        padding: 12px 18px 12px 24px; /* extra left/right padding to avoid clipping */
+        font-size: 18px; /* larger font for readability */
+        line-height: 1.5;
+        overflow-x: auto; /* allow horizontal scrolling if needed */
+        max-width: 100%;
+        box-sizing: border-box;
+        position: relative;
+        z-index: 2;
     }
 </style>
 
@@ -196,7 +204,8 @@
                     </select>
 
                     <h4><p id="grade">题目分数：</p></h4>
-                    <h3><p style="width:100%;background-color:lightblue" id="content">题目内容</p></h3>
+                    <!-- Use a block-level container for content to avoid inline/P tag clipping issues -->
+                    <div id="content" style="width:100%;background-color:lightblue;padding:12px 32px 12px 24px;box-sizing:border-box;margin:6px 0;border-radius:4px;overflow-x:auto;max-width:100%;font-size:20px;min-width:0;overflow-wrap:anywhere;">题目内容</div>
                     <div id="public-cases-panel" style="margin:10px 0 15px 0; display:block;">
                         <div style="font-weight:bold;">样例用例（公开，仅供参考）</div>
                         <div id="public-cases" style="border:1px solid #eee; padding:8px; background:#fafafa; font-size:13px; white-space:pre-wrap; overflow:auto;"></div>
@@ -209,11 +218,11 @@
 
             <!-- 表单 -->
             <form id="form2" onsubmit="return false" action="##" method="post">
-                <div class="row" style="margin-left:120px">
+                <div class="row" style="margin:0 12px;">
                     <!--<div class="row">-->
                     <!--<div style="width:100%;">
                      输入python代码：-->
-                    <div style="width: 102%; margin-left: -83px;" class="span6">
+                    <div style="width:100%; margin-left:0; box-sizing:border-box;" class="span6">
                         <div class="block">
                             <div class="navbar navbar-inner block-header">
                                 <div class="muted pull-left">请根据题目输入python代码：</div>
@@ -226,7 +235,7 @@
 
                             <div class="block-content collapse in">
                                 <div class="span12">
-                                    <textarea id="pycode" name="pycode" style="font-size:18px; width:100%;resize:none" rows="20" type="text" class="span6" id="typeahead" data-provide="typeahead" data-items="4" data-source="[&quot;Alabama&quot;,&quot;Alaska&quot;,&quot;Arizona&quot;,&quot;Arkansas&quot;,&quot;California&quot;,&quot;Colorado&quot;,&quot;Connecticut&quot;,&quot;Delaware&quot;,&quot;Florida&quot;,&quot;Georgia&quot;,&quot;Hawaii&quot;,&quot;Idaho&quot;,&quot;Illinois&quot;,&quot;Indiana&quot;,&quot;Iowa&quot;,&quot;Kansas&quot;,&quot;Kentucky&quot;,&quot;Louisiana&quot;,&quot;Maine&quot;,&quot;Maryland&quot;,&quot;Massachusetts&quot;,&quot;Michigan&quot;,&quot;Minnesota&quot;,&quot;Mississippi&quot;,&quot;Missouri&quot;,&quot;Montana&quot;,&quot;Nebraska&quot;,&quot;Nevada&quot;,&quot;New Hampshire&quot;,&quot;New Jersey&quot;,&quot;New Mexico&quot;,&quot;New York&quot;,&quot;North Dakota&quot;,&quot;North Carolina&quot;,&quot;Ohio&quot;,&quot;Oklahoma&quot;,&quot;Oregon&quot;,&quot;Pennsylvania&quot;,&quot;Rhode Island&quot;,&quot;South Carolina&quot;,&quot;South Dakota&quot;,&quot;Tennessee&quot;,&quot;Texas&quot;,&quot;Utah&quot;,&quot;Vermont&quot;,&quot;Virginia&quot;,&quot;Washington&quot;,&quot;West Virginia&quot;,&quot;Wisconsin&quot;,&quot;Wyoming&quot;]"></textarea>
+                                    <textarea id="pycode" name="pycode" style="font-size:18px; width:100%; resize:none; box-sizing:border-box; max-width:100%;" rows="20" type="text" class="span6" id="typeahead" data-provide="typeahead" data-items="4" data-source="[&quot;Alabama&quot;,&quot;Alaska&quot;,&quot;Arizona&quot;,&quot;Arkansas&quot;,&quot;California&quot;,&quot;Colorado&quot;,&quot;Connecticut&quot;,&quot;Delaware&quot;,&quot;Florida&quot;,&quot;Georgia&quot;,&quot;Hawaii&quot;,&quot;Idaho&quot;,&quot;Illinois&quot;,&quot;Indiana&quot;,&quot;Iowa&quot;,&quot;Kansas&quot;,&quot;Kentucky&quot;,&quot;Louisiana&quot;,&quot;Maine&quot;,&quot;Maryland&quot;,&quot;Massachusetts&quot;,&quot;Michigan&quot;,&quot;Minnesota&quot;,&quot;Mississippi&quot;,&quot;Missouri&quot;,&quot;Montana&quot;,&quot;Nebraska&quot;,&quot;Nevada&quot;,&quot;New Hampshire&quot;,&quot;New Jersey&quot;,&quot;New Mexico&quot;,&quot;New York&quot;,&quot;North Dakota&quot;,&quot;North Carolina&quot;,&quot;Ohio&quot;,&quot;Oklahoma&quot;,&quot;Oregon&quot;,&quot;Pennsylvania&quot;,&quot;Rhode Island&quot;,&quot;South Carolina&quot;,&quot;South Dakota&quot;,&quot;Tennessee&quot;,&quot;Texas&quot;,&quot;Utah&quot;,&quot;Vermont&quot;,&quot;Virginia&quot;,&quot;Washington&quot;,&quot;West Virginia&quot;,&quot;Wisconsin&quot;,&quot;Wyoming&quot;]"></textarea>
 
                                     <!-- 新增：运行结果显示框 -->
                                     <div style="margin-top:15px;">
@@ -713,11 +722,42 @@
     $(function () {
         // ...原有代码...
 
-        // 新增交卷按钮事件
+        // 新增交卷按钮事件：先把当前编辑器代码按私有用例评分并保存，然后再提交整个试卷
         $('#submitExam').click(function () {
-            testOver();
-            alert("已交卷，系统将返回首页！");
-            window.location.href = "/home";
+            var currentContentId = $('#testContentId').val();
+            var currentAnswerId = $('#testAnswerId').val();
+            var currentRecordId = $('#testRecordId').val();
+
+            // 如果当前没有选中题目，仍然触发交卷流程（只会提交选择题）
+            var payload = $('#form2').serialize();
+            payload += '&submit_for_grade=1';
+
+            // 先保存并按私有用例评分当前题（如果有）
+            $.ajax({
+                type: 'POST',
+                url: '/runcode',
+                data: payload,
+                dataType: 'json',
+                success: function (res) {
+                    // 忽略具体结果，继续提交试卷汇总评分
+                    // 调用 testover 汇总所有题目的分数并返回主页
+                    $.ajax({
+                        type: 'GET',
+                        dataType: 'json',
+                        url: '/testover?test_record_id=' + currentRecordId,
+                        success: function (result) {
+                            alert('已交卷，系统将返回首页！');
+                            window.location.href = '/home';
+                        },
+                        error: function () {
+                            alert('交卷失败：请重试或联系管理员。');
+                        }
+                    });
+                },
+                error: function () {
+                    alert('提交并评分失败：请检查网络或联系管理员。');
+                }
+            });
         });
     });
 </script>
