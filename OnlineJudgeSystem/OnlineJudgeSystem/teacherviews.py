@@ -826,6 +826,7 @@ def testcontentrecordmanagement():
 
     # 获取试卷列表（供筛选/导出使用）
     tests = []
+    debug_matched_ids = []
     all_tests = TestServer().select_sql_all() or []
     # 若选了班级，则仅展示该班级有过作答记录的试卷集合
     if selected_class_id:
@@ -834,32 +835,59 @@ def testcontentrecordmanagement():
         students = studentsServer.select_sql_all_two_table()
         class_students = [s for s in students if str(getattr(s, 'ClassId', '')) == selected_class_id]
 
-        # 准备：每份试卷的题目集合
-        test_to_sets = {}
-        for t in all_tests:
-            rels = TestQuestionRelationServer().get_questions_by_test_id(t.Id)
-            sel_ids = {qid for (qid, tp) in rels if tp == 'select'}
-            con_ids = {qid for (qid, tp) in rels if tp == 'content'}
-            test_to_sets[t.Id] = (sel_ids, con_ids)
+        # DEBUG: 输出班级学生数量，便于定位筛选问题
+        try:
+            print(f"[DEBUG] testcontentrecordmanagement: selected_class_id={selected_class_id}, class_students_count={len(class_students)}")
+        except Exception:
+            pass
 
-        # 判断作答记录是否与某试卷匹配（题目集合完全一致）
-        def record_matches(record, select_ids, content_ids):
-            try:
-                r_select = {getattr(a, 'TestSelectId', 0) for a in (getattr(record, 'TestSelect', []) or [])}
-                r_content = {getattr(a, 'TestContentId', 0) for a in (getattr(record, 'TestContent', []) or [])}
-                return (r_select == select_ids) and (r_content == content_ids)
-            except Exception:
-                return False
-
+        # 简化并健壮的匹配策略：只要该班级任一学生有作答记录包含本试卷的任一题目（选择或编程），即认为该试卷存在该班级的作答记录
         matched_test_ids = set()
-        for stu in class_students:
-            for rec in recordServer.select_sql_by_student_id(stu.Id):
-                for t in all_tests:
-                    sel_ids, con_ids = test_to_sets.get(t.Id, (set(), set()))
-                    if sel_ids or con_ids:
-                        if record_matches(rec, sel_ids, con_ids):
+        for t in all_tests:
+            try:
+                rels = TestQuestionRelationServer().get_questions_by_test_id(t.Id)
+                sel_ids = {qid for (qid, tp) in rels if tp == 'select'}
+                con_ids = {qid for (qid, tp) in rels if tp == 'content'}
+                if not sel_ids and not con_ids:
+                    # 如果试卷没有题目关系，跳过
+                    continue
+            except Exception:
+                sel_ids, con_ids = set(), set()
+
+            # 遍历班级学生的作答记录，检查是否有交集
+            for stu in class_students:
+                try:
+                    recs = recordServer.select_sql_by_student_id(stu.Id)
+                except Exception:
+                    recs = []
+                found = False
+                for rec in recs:
+                    # 检查编程题作答中的 TestContentId
+                    for answer in getattr(rec, 'TestContent', []) or []:
+                        if getattr(answer, 'TestContentId', None) in con_ids:
                             matched_test_ids.add(t.Id)
+                            found = True
+                            break
+                    if found:
+                        break
+                    # 检查选择题作答中的 TestSelectId
+                    for answer in getattr(rec, 'TestSelect', []) or []:
+                        if getattr(answer, 'TestSelectId', None) in sel_ids:
+                            matched_test_ids.add(t.Id)
+                            found = True
+                            break
+                    if found:
+                        break
+                if found:
+                    # 不必再检查其他学生
+                    continue
+
         tests = [t for t in all_tests if t.Id in matched_test_ids]
+        debug_matched_ids = sorted(list(matched_test_ids))
+        try:
+            print(f"[DEBUG] testcontentrecordmanagement: matched_test_ids={sorted(list(matched_test_ids))}")
+        except Exception:
+            pass
     else:
         # 未选班级时，先不提供试卷选项
         tests = []
@@ -868,12 +896,58 @@ def testcontentrecordmanagement():
     temps = studentsServer.select_sql_all_two_table()
     if selected_class_id:
         temps = [stu for stu in temps if str(getattr(stu, 'ClassId', '')) == selected_class_id]
+
     datas = []
-    for x in temps:
-        if len(x.StudentsTestRecord) >0 :
-            for item in x.StudentsTestRecord[0].TestContent:
-                x.StudentsTestRecord[0].SumGrade+= item.Grade
-            datas.append(x)
+    # If a specific test is selected, filter each student's records to only include answers
+    # that belong to that test (by checking TestQuestionRelation). Otherwise keep the first
+    # test record as before.
+    if selected_test_id:
+        try:
+            sel_rel = TestQuestionRelationServer().get_questions_by_test_id(int(selected_test_id))
+            sel_ids = {qid for (qid, tp) in sel_rel if tp == 'select'}
+            con_ids = {qid for (qid, tp) in sel_rel if tp == 'content'}
+        except Exception:
+            sel_ids, con_ids = set(), set()
+
+        for stu in temps:
+            # For each student's test records, find records that include this test's questions
+            matched_records = []
+            for rec in getattr(stu, 'StudentsTestRecord', []) or []:
+                # Sum grades only for matching answers
+                matched_sum = 0
+                has_match = False
+                for answer in getattr(rec, 'TestContent', []) or []:
+                    if getattr(answer, 'TestContentId', None) in con_ids:
+                        matched_sum += (getattr(answer, 'Grade', 0) or 0)
+                        has_match = True
+                for answer in getattr(rec, 'TestSelect', []) or []:
+                    if getattr(answer, 'TestSelectId', None) in sel_ids:
+                        matched_sum += (getattr(answer, 'Grade', 0) or 0)
+                        has_match = True
+                if has_match:
+                    # clone a minimal record object to hold filtered results
+                    new_rec = rec
+                    try:
+                        new_rec.SumGrade = matched_sum
+                    except Exception:
+                        pass
+                    matched_records.append(new_rec)
+            if matched_records:
+                # attach only the first matched record for display compatibility with template
+                stu.StudentsTestRecord = matched_records
+                datas.append(stu)
+    else:
+        for x in temps:
+            if len(x.StudentsTestRecord) > 0:
+                # ensure SumGrade is accumulated from TestContent entries (backwards compat)
+                try:
+                    # reset to 0 then accumulate
+                    x.StudentsTestRecord[0].SumGrade = 0
+                    for item in x.StudentsTestRecord[0].TestContent:
+                        x.StudentsTestRecord[0].SumGrade += (getattr(item, 'Grade', 0) or 0)
+                except Exception:
+                    pass
+                datas.append(x)
 
     #上一页下一页
     pre_page  = 0
@@ -919,6 +993,7 @@ def testcontentrecordmanagement():
         classes = teacher_classes,
         selected_class_id = selected_class_id,
         tests = tests,
+        debug_matched_ids = debug_matched_ids,
         selected_test_id = selected_test_id
     )
 
@@ -944,37 +1019,57 @@ def testcontentrecordmanagementseacher():
 
     # 与列表页一致：根据班级过滤试卷
     tests = []
+    debug_matched_ids = []
     all_tests = TestServer().select_sql_all() or []
     if selected_class_id:
+        # Use the same lenient matching strategy as the list view: if any student in the class
+        # has a record that contains any question from the test (select/content), count the test.
         studentsServer = StudentsServer()
         recordServer = TestRecordServer()
         students = studentsServer.select_sql_all_two_table()
         class_students = [s for s in students if str(getattr(s, 'ClassId', '')) == selected_class_id]
 
-        test_to_sets = {}
-        for t in all_tests:
-            rels = TestQuestionRelationServer().get_questions_by_test_id(t.Id)
-            sel_ids = {qid for (qid, tp) in rels if tp == 'select'}
-            con_ids = {qid for (qid, tp) in rels if tp == 'content'}
-            test_to_sets[t.Id] = (sel_ids, con_ids)
-
-        def record_matches(record, select_ids, content_ids):
-            try:
-                r_select = {getattr(a, 'TestSelectId', 0) for a in (getattr(record, 'TestSelect', []) or [])}
-                r_content = {getattr(a, 'TestContentId', 0) for a in (getattr(record, 'TestContent', []) or [])}
-                return (r_select == select_ids) and (r_content == content_ids)
-            except Exception:
-                return False
-
         matched_test_ids = set()
-        for stu in class_students:
-            for rec in recordServer.select_sql_by_student_id(stu.Id):
-                for t in all_tests:
-                    sel_ids, con_ids = test_to_sets.get(t.Id, (set(), set()))
-                    if sel_ids or con_ids:
-                        if record_matches(rec, sel_ids, con_ids):
+        for t in all_tests:
+            try:
+                rels = TestQuestionRelationServer().get_questions_by_test_id(t.Id)
+                sel_ids = {qid for (qid, tp) in rels if tp == 'select'}
+                con_ids = {qid for (qid, tp) in rels if tp == 'content'}
+                if not sel_ids and not con_ids:
+                    continue
+            except Exception:
+                sel_ids, con_ids = set(), set()
+
+            for stu in class_students:
+                try:
+                    recs = recordServer.select_sql_by_student_id(stu.Id)
+                except Exception:
+                    recs = []
+                found = False
+                for rec in recs:
+                    for answer in getattr(rec, 'TestContent', []) or []:
+                        if getattr(answer, 'TestContentId', None) in con_ids:
                             matched_test_ids.add(t.Id)
+                            found = True
+                            break
+                    if found:
+                        break
+                    for answer in getattr(rec, 'TestSelect', []) or []:
+                        if getattr(answer, 'TestSelectId', None) in sel_ids:
+                            matched_test_ids.add(t.Id)
+                            found = True
+                            break
+                    if found:
+                        break
+                if found:
+                    continue
+
         tests = [t for t in all_tests if t.Id in matched_test_ids]
+        debug_matched_ids = sorted(list(matched_test_ids))
+        try:
+            print(f"[DEBUG] testcontentrecordmanagementseacher: selected_class_id={selected_class_id}, matched_test_ids={sorted(list(matched_test_ids))}")
+        except Exception:
+            pass
 
     if startTime !='' and endTime!='':
         t  = pd.to_datetime(request.form.get('startTime').split(" ")[0])
@@ -1027,6 +1122,7 @@ def testcontentrecordmanagementseacher():
         classes = teacher_classes,
         selected_class_id = selected_class_id,
         tests = tests,
+        debug_matched_ids = debug_matched_ids,
         selected_test_id = selected_test_id
     )
 
